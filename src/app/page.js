@@ -123,6 +123,11 @@ export default function WorkoutTracker() {
             onDeletePlan={deletePlan}
             onCreatePlan={createPlan}
             onCancelAdd={() => setShowAddPlan(false)}
+            onAddExercise={addExercise}
+            onEditExercise={editExercise}
+            onDeleteExercise={deleteExercise}
+            onDuplicateExercise={duplicateExercise}
+            onMoveExercise={moveExercise}
           />
         )}
 
