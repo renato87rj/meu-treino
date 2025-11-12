@@ -3,6 +3,8 @@
 import React, { useState, useEffect } from 'react';
 import { Plus, Trash2, Dumbbell, Calendar, CheckCircle, Edit2, Save, X, ClipboardList, ChevronRight, Copy, ChevronUp, ChevronDown, Timer, Play, Pause, RotateCcw, Settings } from 'lucide-react';
 
+import InstallPrompt from '../components/InstallPrompt';
+
 export default function WorkoutTracker() {
   const [workoutPlans, setWorkoutPlans] = useState([]);
   const [history, setHistory] = useState([]);
@@ -301,6 +303,7 @@ export default function WorkoutTracker() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900">
+      <InstallPrompt />
       {/* Header */}
       <div className="bg-black/30 backdrop-blur-sm border-b border-purple-500/20 sticky top-0 z-10">
         <div className="max-w-3xl mx-auto px-4 py-4">
