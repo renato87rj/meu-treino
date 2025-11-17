@@ -51,7 +51,7 @@ export default function WorkoutView({
                     : 'border-purple-500/20'
                 }`}
               >
-                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                <div className="flex items-start justify-between gap-3">
                   <div className="flex-1 min-w-0">
                     <h3 className="text-white font-semibold text-lg mb-1 break-words">{exercise.name}</h3>
                     <p className="text-purple-300 text-sm">
@@ -60,16 +60,16 @@ export default function WorkoutView({
                     </p>
                   </div>
 
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-2 flex-shrink-0">
                     {completed ? (
                       <>
-                        <div className="bg-green-500/20 text-green-400 px-4 py-2 rounded-lg flex items-center gap-2">
-                          <CheckCircle size={20} />
-                          <span className="text-sm font-medium">Feito</span>
+                        <div className="bg-green-500/20 text-green-400 px-3 sm:px-4 py-2 rounded-lg flex items-center gap-2">
+                          <CheckCircle size={18} className="sm:w-5 sm:h-5" />
+                          <span className="text-xs sm:text-sm font-medium whitespace-nowrap">Feito</span>
                         </div>
                         <button
                           onClick={() => handleToggleExercise(exercise)}
-                          className="bg-red-500/20 hover:bg-red-500/30 border border-red-500/30 text-red-400 p-2 rounded-lg shadow-md hover:shadow-lg transition-all hover:scale-105 active:scale-95"
+                          className="bg-red-500/20 hover:bg-red-500/30 border border-red-500/30 text-red-400 p-2 rounded-lg shadow-md hover:shadow-lg transition-all hover:scale-105 active:scale-95 flex-shrink-0"
                           title="Desmarcar exercício"
                         >
                           <X size={18} strokeWidth={2.5} />
@@ -78,11 +78,11 @@ export default function WorkoutView({
                     ) : (
                       <button
                         onClick={() => handleToggleExercise(exercise)}
-                        className="bg-purple-600/20 hover:bg-purple-600/30 border border-purple-500/30 text-purple-300 p-2 rounded-lg shadow-md hover:shadow-lg transition-all hover:scale-105 active:scale-95 flex items-center gap-2"
+                        className="bg-purple-600/20 hover:bg-purple-600/30 border border-purple-500/30 text-purple-300 p-2 rounded-lg shadow-md hover:shadow-lg transition-all hover:scale-105 active:scale-95 flex items-center gap-2 flex-shrink-0"
                         title="Marcar como feito"
                       >
                         <Check size={18} strokeWidth={2.5} />
-                        <span className="text-sm font-medium">Feito</span>
+                        <span className="text-xs sm:text-sm font-medium whitespace-nowrap">Feito</span>
                       </button>
                     )}
                   </div>

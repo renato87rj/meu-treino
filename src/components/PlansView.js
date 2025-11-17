@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { ClipboardList, ChevronRight, Copy, Trash2, ChevronDown, ChevronUp, Edit2, Save, X, Plus, Dumbbell } from 'lucide-react';
+import { ClipboardList, ChevronRight, Copy, Trash2, ChevronDown, ChevronUp, Edit2, Save, X, Plus, Dumbbell, MoreVertical } from 'lucide-react';
 
 export default function PlansView({ 
   workoutPlans, 
@@ -22,6 +22,7 @@ export default function PlansView({
   const [editingExercise, setEditingExercise] = useState(null);
   const [editingPlanId, setEditingPlanId] = useState(null);
   const [editingPlanName, setEditingPlanName] = useState('');
+  const [openMenuId, setOpenMenuId] = useState(null);
   const [newExercise, setNewExercise] = useState({
     name: '',
     sets: '',
@@ -29,6 +30,7 @@ export default function PlansView({
     weight: ''
   });
   const previousPlansCount = useRef(workoutPlans.length);
+  const menuRefs = useRef({});
 
   // Detectar quando uma nova ficha é criada e expandir automaticamente se tiver 0 exercícios
   useEffect(() => {
@@ -99,6 +101,53 @@ export default function PlansView({
     setEditingPlanName('');
   };
 
+  // Fechar menu ao clicar fora
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (openMenuId !== null) {
+        const menuElement = menuRefs.current[openMenuId];
+        if (menuElement && !menuElement.contains(event.target)) {
+          setOpenMenuId(null);
+        }
+      }
+    };
+
+    if (openMenuId !== null) {
+      // Pequeno delay para não fechar imediatamente ao abrir
+      setTimeout(() => {
+        document.addEventListener('mousedown', handleClickOutside);
+        document.addEventListener('touchstart', handleClickOutside);
+      }, 10);
+    }
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener('touchstart', handleClickOutside);
+    };
+  }, [openMenuId]);
+
+  const toggleMenu = (planId, e) => {
+    e.stopPropagation();
+    setOpenMenuId(openMenuId === planId ? null : planId);
+  };
+
+  const handleMenuAction = (planId, action) => {
+    setOpenMenuId(null);
+    if (action === 'edit') {
+      const plan = workoutPlans.find(p => p.id === planId);
+      if (plan) {
+        startEditingPlanName(plan);
+      }
+    } else if (action === 'duplicate') {
+      const plan = workoutPlans.find(p => p.id === planId);
+      if (plan) {
+        onDuplicatePlan(plan);
+      }
+    } else if (action === 'delete') {
+      onDeletePlan(planId);
+    }
+  };
+
   return (
     <div>
       {/* Formulário de Nova Ficha */}
@@ -148,38 +197,38 @@ export default function PlansView({
               >
                 {/* Cabeçalho da Ficha */}
                 <div className="p-4">
-                  <div className="flex items-center justify-between gap-3">
+                  <div className="flex items-start justify-between gap-3">
                     <button 
                       onClick={() => togglePlan(plan.id)}
-                      className="flex items-center gap-3 text-left"
+                      className="flex items-start pt-1 flex-shrink-0"
                       disabled={editingPlanId === plan.id}
                     >
                       {isExpanded ? (
-                        <ChevronDown className="text-purple-400 flex-shrink-0" size={20} />
+                        <ChevronDown className="text-purple-400" size={20} />
                       ) : (
-                        <ChevronRight className="text-purple-400 flex-shrink-0" size={20} />
+                        <ChevronRight className="text-purple-400" size={20} />
                       )}
                     </button>
                     
                     {editingPlanId === plan.id ? (
-                      <div className="flex-1 flex items-center gap-2">
+                      <div className="flex-1 flex items-center gap-2 min-w-0">
                         <input
                           type="text"
                           value={editingPlanName}
                           onChange={(e) => setEditingPlanName(e.target.value)}
-                          className="flex-1 px-3 py-2 bg-white/5 border border-purple-500/30 rounded-lg text-white focus:outline-none focus:border-purple-400"
+                          className="flex-1 min-w-0 px-3 py-2 bg-white/5 border border-purple-500/30 rounded-lg text-white focus:outline-none focus:border-purple-400"
                           autoFocus
                         />
                         <button
                           onClick={handleSavePlanName}
-                          className="text-green-400 hover:bg-green-500/20 p-2 rounded-lg"
+                          className="text-green-400 hover:bg-green-500/20 p-2 rounded-lg flex-shrink-0"
                           title="Salvar"
                         >
                           <Save size={18} />
                         </button>
                         <button
                           onClick={cancelEditingPlanName}
-                          className="text-red-400 hover:bg-red-500/20 p-2 rounded-lg"
+                          className="text-red-400 hover:bg-red-500/20 p-2 rounded-lg flex-shrink-0"
                           title="Cancelar"
                         >
                           <X size={18} />
@@ -187,38 +236,61 @@ export default function PlansView({
                       </div>
                     ) : (
                       <>
-                <div className="flex-1">
-                  <h3 className="text-white font-semibold text-lg mb-1">{plan.name}</h3>
-                  <p className="text-purple-300 text-sm">{plan.exercises.length} exercícios</p>
-                </div>
-                <div className="flex gap-2">
-                  <button
-                    onClick={() => onSelectPlanForWorkout(plan)}
-                    className="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg font-medium flex items-center gap-2"
-                  >
+                        <div className="flex-1 min-w-0">
+                          <h3 className="text-white font-semibold text-base sm:text-lg mb-1 break-words line-clamp-2">{plan.name}</h3>
+                          <p className="text-purple-300 text-xs sm:text-sm">{plan.exercises.length} {plan.exercises.length === 1 ? 'exercício' : 'exercícios'}</p>
+                        </div>
+                        <div className="flex items-center gap-2 flex-shrink-0 relative">
+                          <button
+                            onClick={() => onSelectPlanForWorkout(plan)}
+                            className="bg-purple-600 hover:bg-purple-700 text-white px-3 sm:px-4 py-2 rounded-lg font-medium text-xs sm:text-sm whitespace-nowrap"
+                          >
                             Treinar
                           </button>
-                          <button
-                            onClick={() => startEditingPlanName(plan)}
-                            className="text-purple-400 hover:bg-purple-500/20 p-2 rounded-lg"
-                            title="Editar nome"
+                          
+                          {/* Menu de Contexto */}
+                          <div 
+                            className="relative" 
+                            ref={(el) => {
+                              if (el) menuRefs.current[plan.id] = el;
+                            }}
                           >
-                            <Edit2 size={18} />
-                  </button>
-                  <button
-                    onClick={() => onDuplicatePlan(plan)}
-                    className="text-purple-400 hover:bg-purple-500/20 p-2 rounded-lg"
-                    title="Duplicar ficha"
-                  >
-                    <Copy size={18} />
-                  </button>
-                  <button
-                    onClick={() => onDeletePlan(plan.id)}
-                    className="text-red-400 hover:bg-red-500/20 p-2 rounded-lg"
-                            title="Deletar ficha"
-                  >
-                    <Trash2 size={18} />
-                  </button>
+                            <button
+                              onClick={(e) => toggleMenu(plan.id, e)}
+                              className="text-purple-400 hover:bg-purple-500/20 p-2 rounded-lg transition-colors"
+                              title="Mais opções"
+                            >
+                              <MoreVertical size={18} />
+                            </button>
+                            
+                            {/* Dropdown Menu */}
+                            {openMenuId === plan.id && (
+                              <div className="absolute right-0 top-full mt-1 bg-slate-800 border border-purple-500/30 rounded-lg shadow-xl z-50 min-w-[160px] max-w-[200px] overflow-hidden backdrop-blur-md">
+                                <button
+                                  onClick={() => handleMenuAction(plan.id, 'edit')}
+                                  className="w-full px-4 py-3 text-left text-white hover:bg-purple-600/20 active:bg-purple-600/30 flex items-center gap-3 transition-colors"
+                                >
+                                  <Edit2 size={16} className="flex-shrink-0" />
+                                  <span className="text-sm">Editar nome</span>
+                                </button>
+                                <button
+                                  onClick={() => handleMenuAction(plan.id, 'duplicate')}
+                                  className="w-full px-4 py-3 text-left text-white hover:bg-purple-600/20 active:bg-purple-600/30 flex items-center gap-3 transition-colors"
+                                >
+                                  <Copy size={16} className="flex-shrink-0" />
+                                  <span className="text-sm">Duplicar</span>
+                                </button>
+                                <div className="border-t border-purple-500/20 my-1"></div>
+                                <button
+                                  onClick={() => handleMenuAction(plan.id, 'delete')}
+                                  className="w-full px-4 py-3 text-left text-red-400 hover:bg-red-500/20 active:bg-red-500/30 flex items-center gap-3 transition-colors"
+                                >
+                                  <Trash2 size={16} className="flex-shrink-0" />
+                                  <span className="text-sm">Deletar</span>
+                                </button>
+                              </div>
+                            )}
+                          </div>
                         </div>
                       </>
                     )}
