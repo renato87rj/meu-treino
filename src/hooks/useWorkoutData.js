@@ -173,64 +173,23 @@ export default function useWorkoutData() {
     }));
   };
 
-  // Registrar treino - agora aceita array de séries ou dados de uma série individual
-  const recordWorkout = (plan, exercise, recordData) => {
-    // Se recordData.sets é um array, significa que está registrando múltiplas séries de uma vez
-    // Se não, está registrando uma série individual ou atualizando um registro existente
-    if (recordData.sets && Array.isArray(recordData.sets)) {
-      // Registro completo com array de séries
-      const record = {
-        id: Date.now(),
-        planId: plan.id,
-        planName: plan.name,
-        exerciseId: exercise.id,
-        exerciseName: exercise.name,
-        plannedSets: exercise.sets,
-        plannedReps: exercise.reps,
-        sets: recordData.sets, // Array de séries: [{ reps: string, weight: number | null }, ...]
-        finalized: false,
-        date: new Date().toISOString()
-      };
+  // Registrar treino - simplificado: apenas marca como feito
+  const recordWorkout = (plan, exercise) => {
+    // Verificar se já existe registro hoje para este exercício
+    const today = new Date().toLocaleDateString('pt-BR');
+    const existingRecord = history.find(record => {
+      const recordDate = new Date(record.date).toLocaleDateString('pt-BR');
+      return recordDate === today && 
+             record.planId === plan.id && 
+             record.exerciseId === exercise.id;
+    });
 
-      setHistory([record, ...history]);
-      return true;
-    } else if (recordData.setIndex !== undefined) {
-      // Adicionar ou atualizar uma série específica em um registro existente
-      const existingRecord = history.find(r => r.id === recordData.recordId);
-      if (!existingRecord) {
-        alert('Registro não encontrado');
-        return false;
-      }
-
-      const updatedSets = existingRecord.sets ? [...existingRecord.sets] : [];
-      
-      if (recordData.setIndex < updatedSets.length) {
-        // Atualizar série existente
-        updatedSets[recordData.setIndex] = {
-          reps: recordData.reps,
-          weight: recordData.weight ? parseFloat(recordData.weight) : null
-        };
-      } else {
-        // Adicionar nova série
-        updatedSets.push({
-          reps: recordData.reps,
-          weight: recordData.weight ? parseFloat(recordData.weight) : null
-        });
-      }
-
-      setHistory(history.map(record => 
-        record.id === recordData.recordId 
-          ? { ...record, sets: updatedSets, finalized: record.finalized || false }
-          : record
-      ));
-      return true;
+    if (existingRecord) {
+      // Se já existe, remover (desmarcar)
+      setHistory(history.filter(r => r.id !== existingRecord.id));
+      return false; // Retorna false para indicar que foi desmarcado
     } else {
-      // Criar novo registro com primeira série
-      if (!recordData.reps) {
-        alert('Preencha as repetições');
-        return false;
-      }
-
+      // Criar novo registro marcando como feito
       const record = {
         id: Date.now(),
         planId: plan.id,
@@ -239,16 +198,12 @@ export default function useWorkoutData() {
         exerciseName: exercise.name,
         plannedSets: exercise.sets,
         plannedReps: exercise.reps,
-        sets: [{
-          reps: recordData.reps,
-          weight: recordData.weight ? parseFloat(recordData.weight) : null
-        }],
-        finalized: false,
+        completed: true,
         date: new Date().toISOString()
       };
 
       setHistory([record, ...history]);
-      return true;
+      return true; // Retorna true para indicar que foi marcado como feito
     }
   };
 
@@ -261,68 +216,9 @@ export default function useWorkoutData() {
     });
   };
 
-  // Editar registro de treino
-  const editRecord = (recordId, updatedData) => {
-    // Se updatedData tem setIndex, está editando uma série específica
-    if (updatedData.setIndex !== undefined) {
-      const record = history.find(r => r.id === recordId);
-      if (!record || !record.sets) {
-        alert('Registro ou série não encontrada');
-        return false;
-      }
-
-      const updatedSets = [...record.sets];
-      if (updatedData.setIndex >= 0 && updatedData.setIndex < updatedSets.length) {
-        updatedSets[updatedData.setIndex] = {
-          reps: updatedData.reps,
-          weight: updatedData.weight !== undefined && updatedData.weight !== null 
-            ? parseFloat(updatedData.weight) 
-            : null
-        };
-
-        setHistory(history.map(r => 
-          r.id === recordId 
-            ? { ...r, sets: updatedSets }
-            : r
-        ));
-        return true;
-      }
-      return false;
-    }
-
-    // Edição geral do registro
-    setHistory(history.map(record => 
-      record.id === recordId 
-        ? { ...record, ...updatedData }
-        : record
-    ));
-    return true;
-  };
-
-  // Remover série de um registro
-  const removeSetFromRecord = (recordId, setIndex) => {
-    const record = history.find(r => r.id === recordId);
-    if (!record || !record.sets) {
-      return false;
-    }
-
-    const updatedSets = record.sets.filter((_, index) => index !== setIndex);
-    
-    setHistory(history.map(r => 
-      r.id === recordId 
-        ? { ...r, sets: updatedSets }
-        : r
-    ));
-    return true;
-  };
-
-  // Finalizar exercício (marcar como completo mesmo com menos séries)
-  const finalizeExercise = (recordId) => {
-    setHistory(history.map(record => 
-      record.id === recordId 
-        ? { ...record, finalized: true }
-        : record
-    ));
+  // Remover registro de treino (desmarcar como feito)
+  const removeRecord = (recordId) => {
+    setHistory(history.filter(r => r.id !== recordId));
     return true;
   };
 
@@ -352,9 +248,7 @@ export default function useWorkoutData() {
     moveExercise,
     recordWorkout,
     getTodayRecords,
-    editRecord,
-    removeSetFromRecord,
-    finalizeExercise,
+    removeRecord,
     groupHistoryByDate
   };
 }

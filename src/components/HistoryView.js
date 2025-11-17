@@ -31,43 +31,6 @@ export default function HistoryView({ history, groupHistoryByDate }) {
 
   const groupedByDateAndPlan = groupByDateAndPlan();
 
-  // Formatar resumo consolidado das séries
-  const formatSetsSummary = (record) => {
-    // Compatibilidade com registros antigos
-    if (record.actualSets && !record.sets) {
-      return `${record.actualSets} x ${record.actualReps}${record.actualWeight ? ` ${record.actualWeight}kg` : ''}`;
-    }
-
-    // Novo formato com array de séries
-    if (!record.sets || record.sets.length === 0) {
-      return 'Nenhuma série registrada';
-    }
-
-    const sets = record.sets;
-    const totalSets = sets.length;
-
-    // Verificar se todas as séries têm a mesma carga
-    const allSameWeight = sets.every(set => 
-      set.weight === sets[0].weight || (!set.weight && !sets[0].weight)
-    );
-    const commonWeight = sets[0].weight;
-
-    if (allSameWeight && commonWeight) {
-      // Formato: "4 séries: 12, 10, 8, 8 reps 20kg"
-      const repsList = sets.map(s => s.reps).join(', ');
-      return `${totalSets} séries: ${repsList} reps ${commonWeight}kg`;
-    } else if (allSameWeight && !commonWeight) {
-      // Todas sem carga: "4 séries: 12, 10, 8, 8 reps"
-      const repsList = sets.map(s => s.reps).join(', ');
-      return `${totalSets} séries: ${repsList} reps`;
-    } else {
-      // Cargas diferentes: "4 séries: 12x20kg, 10x20kg, 8x18kg, 8x18kg"
-      const setsList = sets.map(set => 
-        `${set.reps}${set.weight ? `x${set.weight}kg` : ''}`
-      ).join(', ');
-      return `${totalSets} séries: ${setsList}`;
-    }
-  };
 
   return (
     <div>
@@ -109,19 +72,16 @@ export default function HistoryView({ history, groupHistoryByDate }) {
                             className="bg-white/10 backdrop-blur-md rounded-xl p-4 border border-purple-500/20"
                           >
                             <h4 className="text-white font-semibold mb-3">{record.exerciseName}</h4>
-                            <div className="grid grid-cols-2 gap-4 text-sm">
-                              <div>
-                                <p className="text-purple-400/70 mb-1">Planejado:</p>
-                                <p className="text-purple-300">
+                            <div className="flex items-center justify-between mt-2">
+                              <div className="flex items-center gap-2">
+                                <p className="text-purple-400/70 text-sm">Planejado:</p>
+                                <p className="text-purple-300 text-sm">
                                   {record.plannedSets} x {record.plannedReps}
                                 </p>
                               </div>
-                              <div>
-                                <p className="text-green-400/70 mb-1">Realizado:</p>
-                                <p className="text-green-300 text-sm">
-                                  {formatSetsSummary(record)}
-                                </p>
-                              </div>
+                              <span className="bg-green-500/20 text-green-400 px-3 py-1 rounded-lg text-sm font-medium">
+                                ✓ Feito
+                              </span>
                             </div>
                           </div>
                         ))}

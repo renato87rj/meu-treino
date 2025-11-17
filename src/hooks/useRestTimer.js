@@ -24,8 +24,9 @@ export default function useRestTimer(defaultRestTime = 90) {
   }, [timerRunning, timerSeconds, timerActive]);
 
   // Iniciar timer de descanso
-  const startRestTimer = () => {
-    setTimerSeconds(defaultTime);
+  const startRestTimer = (customSeconds = null) => {
+    const timeToUse = customSeconds !== null ? customSeconds : defaultTime;
+    setTimerSeconds(timeToUse);
     setTimerActive(true);
     setTimerRunning(true);
     setTimerMinimized(false);

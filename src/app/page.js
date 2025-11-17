@@ -5,6 +5,7 @@ import React, { useState } from 'react';
 import InstallPrompt from '../components/InstallPrompt';
 import Header from '../components/Header';
 import RestTimer from '../components/RestTimer';
+import TimerButton from '../components/TimerButton';
 import PlansView from '../components/PlansView';
 import WorkoutView from '../components/WorkoutView';
 import HistoryView from '../components/HistoryView';
@@ -33,9 +34,6 @@ export default function WorkoutTracker() {
     moveExercise,
     recordWorkout,
     getTodayRecords,
-    editRecord,
-    removeSetFromRecord,
-    finalizeExercise,
     groupHistoryByDate
   } = useWorkoutData();
 
@@ -79,13 +77,9 @@ export default function WorkoutTracker() {
     }
   };
 
-  // Registrar treino e iniciar timer
-  const handleRecordWorkout = (plan, exercise, recordData) => {
-    const success = recordWorkout(plan, exercise, recordData);
-    if (success) {
-      startRestTimer();
-    }
-    return success;
+  // Registrar treino
+  const handleRecordWorkout = (plan, exercise) => {
+    return recordWorkout(plan, exercise);
   };
 
   // Obter registros de hoje
@@ -106,9 +100,6 @@ export default function WorkoutTracker() {
         totalExercises={selectedPlan?.exercises.length || 0}
         onAddClick={handleAddClick}
         onViewChange={handleViewChange}
-        timerActive={timerActive}
-        defaultTime={defaultTime}
-        onSetDefaultTime={setDefaultRestTime}
       />
 
       <div className="max-w-3xl mx-auto px-4 py-6">
@@ -125,6 +116,14 @@ export default function WorkoutTracker() {
           toggleMinimize={toggleMinimize}
           setCustomTime={setCustomTime}
         />
+
+        {/* Botão para Iniciar Timer - só aparece quando timer não está ativo */}
+        {view === 'workout' && !timerActive && (
+          <TimerButton
+            onStartTimer={startRestTimer}
+            defaultTime={defaultTime}
+          />
+        )}
 
         {/* View: Lista de Fichas */}
         {view === 'plans' && (
@@ -152,9 +151,6 @@ export default function WorkoutTracker() {
             completedToday={completedToday}
             todayRecords={todayRecords}
             onRecordWorkout={handleRecordWorkout}
-            onEditRecord={editRecord}
-            onRemoveSet={removeSetFromRecord}
-            onFinalizeExercise={finalizeExercise}
           />
         )}
 
