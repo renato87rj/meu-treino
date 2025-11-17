@@ -53,6 +53,19 @@ export default function useWorkoutData() {
     setWorkoutPlans([...workoutPlans, newPlan]);
   };
 
+  // Editar nome da ficha
+  const editPlanName = (planId, newName) => {
+    if (!newName.trim()) {
+      alert('Digite um nome para a ficha');
+      return false;
+    }
+
+    setWorkoutPlans(workoutPlans.map(plan =>
+      plan.id === planId ? { ...plan, name: newName } : plan
+    ));
+    return true;
+  };
+
   // Deletar ficha
   const deletePlan = (planId) => {
     if (confirm('Deletar esta ficha de treino?')) {
@@ -64,7 +77,7 @@ export default function useWorkoutData() {
 
   // Adicionar exercício à ficha
   const addExercise = (planId, exerciseData) => {
-    if (!exerciseData.name || !exerciseData.sets || !exerciseData.reps || !exerciseData.weight) {
+    if (!exerciseData.name || !exerciseData.sets || !exerciseData.reps) {
       alert('Preencha todos os campos');
       return false;
     }
@@ -73,8 +86,8 @@ export default function useWorkoutData() {
       id: Date.now(),
       name: exerciseData.name,
       sets: parseInt(exerciseData.sets),
-      reps: parseInt(exerciseData.reps),
-      weight: parseFloat(exerciseData.weight)
+      reps: exerciseData.reps, // Mantém como string para permitir intervalos como "8-12"
+      weight: exerciseData.weight ? parseFloat(exerciseData.weight) : null // Carga opcional
     };
 
     setWorkoutPlans(workoutPlans.map(plan => 
@@ -88,17 +101,24 @@ export default function useWorkoutData() {
 
   // Editar exercício
   const editExercise = (planId, exerciseData) => {
-    if (!exerciseData.name || !exerciseData.sets || !exerciseData.reps || !exerciseData.weight) {
+    if (!exerciseData.name || !exerciseData.sets || !exerciseData.reps) {
       alert('Preencha todos os campos');
       return false;
     }
+
+    const updatedExercise = {
+      ...exerciseData,
+      sets: parseInt(exerciseData.sets),
+      reps: exerciseData.reps, // Mantém como string para permitir intervalos
+      weight: exerciseData.weight ? parseFloat(exerciseData.weight) : null // Carga opcional
+    };
 
     setWorkoutPlans(workoutPlans.map(plan =>
       plan.id === planId
         ? {
             ...plan,
             exercises: plan.exercises.map(ex =>
-              ex.id === exerciseData.id ? exerciseData : ex
+              ex.id === updatedExercise.id ? updatedExercise : ex
             )
           }
         : plan
@@ -155,8 +175,8 @@ export default function useWorkoutData() {
 
   // Registrar treino
   const recordWorkout = (plan, exercise, recordData) => {
-    if (!recordData.sets || !recordData.reps || !recordData.weight) {
-      alert('Preencha todos os campos');
+    if (!recordData.sets || !recordData.reps) {
+      alert('Preencha séries e repetições');
       return false;
     }
 
@@ -168,10 +188,9 @@ export default function useWorkoutData() {
       exerciseName: exercise.name,
       plannedSets: exercise.sets,
       plannedReps: exercise.reps,
-      plannedWeight: exercise.weight,
       actualSets: parseInt(recordData.sets),
-      actualReps: parseInt(recordData.reps),
-      actualWeight: parseFloat(recordData.weight),
+      actualReps: recordData.reps, // Mantém como string para permitir intervalos
+      actualWeight: recordData.weight ? parseFloat(recordData.weight) : null,
       date: new Date().toISOString()
     };
 
@@ -186,6 +205,16 @@ export default function useWorkoutData() {
       const recordDate = new Date(record.date).toLocaleDateString('pt-BR');
       return recordDate === today && record.planId === planId;
     });
+  };
+
+  // Editar registro de treino
+  const editRecord = (recordId, updatedData) => {
+    setHistory(history.map(record => 
+      record.id === recordId 
+        ? { ...record, ...updatedData }
+        : record
+    ));
+    return true;
   };
 
   // Agrupar histórico por data
@@ -204,6 +233,7 @@ export default function useWorkoutData() {
     workoutPlans,
     history,
     createPlan,
+    editPlanName,
     duplicatePlan,
     deletePlan,
     addExercise,
@@ -213,6 +243,7 @@ export default function useWorkoutData() {
     moveExercise,
     recordWorkout,
     getTodayRecords,
+    editRecord,
     groupHistoryByDate
   };
 }

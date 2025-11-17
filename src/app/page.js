@@ -23,6 +23,7 @@ export default function WorkoutTracker() {
     workoutPlans,
     history,
     createPlan,
+    editPlanName,
     duplicatePlan,
     deletePlan,
     addExercise,
@@ -32,6 +33,7 @@ export default function WorkoutTracker() {
     moveExercise,
     recordWorkout,
     getTodayRecords,
+    editRecord,
     groupHistoryByDate
   } = useWorkoutData();
 
@@ -40,11 +42,15 @@ export default function WorkoutTracker() {
     timerActive,
     timerSeconds,
     timerRunning,
+    timerMinimized,
+    defaultTime,
     startRestTimer,
     toggleTimer,
     resetTimer,
     closeTimer,
+    toggleMinimize,
     setCustomTime,
+    setDefaultRestTime,
     formatTime
   } = useRestTimer(90);
 
@@ -98,6 +104,9 @@ export default function WorkoutTracker() {
         totalExercises={selectedPlan?.exercises.length || 0}
         onAddClick={handleAddClick}
         onViewChange={handleViewChange}
+        timerActive={timerActive}
+        defaultTime={defaultTime}
+        onSetDefaultTime={setDefaultRestTime}
       />
 
       <div className="max-w-3xl mx-auto px-4 py-6">
@@ -106,10 +115,12 @@ export default function WorkoutTracker() {
           timerActive={timerActive}
           timerSeconds={timerSeconds}
           timerRunning={timerRunning}
+          timerMinimized={timerMinimized}
           formatTime={formatTime}
           toggleTimer={toggleTimer}
           resetTimer={resetTimer}
           closeTimer={closeTimer}
+          toggleMinimize={toggleMinimize}
           setCustomTime={setCustomTime}
         />
 
@@ -119,6 +130,7 @@ export default function WorkoutTracker() {
             workoutPlans={workoutPlans}
             showAddPlan={showAddPlan}
             onSelectPlanForWorkout={selectPlanForWorkout}
+            onEditPlanName={editPlanName}
             onDuplicatePlan={duplicatePlan}
             onDeletePlan={deletePlan}
             onCreatePlan={createPlan}
@@ -136,14 +148,9 @@ export default function WorkoutTracker() {
           <WorkoutView
             selectedPlan={selectedPlan}
             completedToday={completedToday}
-            showAddExercise={showAddExercise}
-            onAddExercise={addExercise}
-            onEditExercise={editExercise}
-            onDeleteExercise={deleteExercise}
-            onDuplicateExercise={duplicateExercise}
-            onMoveExercise={moveExercise}
+            todayRecords={todayRecords}
             onRecordWorkout={handleRecordWorkout}
-            onCancelAdd={() => setShowAddExercise(false)}
+            onEditRecord={editRecord}
           />
         )}
 

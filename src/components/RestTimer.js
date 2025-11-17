@@ -1,18 +1,41 @@
 import React from 'react';
-import { Timer, X, Play, Pause, RotateCcw } from 'lucide-react';
+import { Timer, X, Play, Pause, RotateCcw, ChevronDown, ChevronUp } from 'lucide-react';
 
 export default function RestTimer({ 
   timerActive,
   timerSeconds,
   timerRunning,
+  timerMinimized,
   formatTime,
   toggleTimer,
   resetTimer,
   closeTimer,
+  toggleMinimize,
   setCustomTime
 }) {
   if (!timerActive) return null;
 
+  // Versão minimizada
+  if (timerMinimized) {
+    return (
+      <div className="fixed bottom-6 right-6 z-50">
+        <button
+          onClick={toggleMinimize}
+          className="bg-gradient-to-br from-purple-600 to-purple-800 rounded-full p-4 shadow-2xl border-2 border-purple-400/50 backdrop-blur-md hover:scale-105 transition-transform"
+        >
+          <div className="flex items-center gap-3">
+            <Timer className="text-white" size={24} />
+            <div className={`text-2xl font-bold ${timerSeconds <= 10 ? 'text-red-300' : 'text-white'}`}>
+              {formatTime(timerSeconds)}
+            </div>
+            <ChevronUp className="text-white" size={20} />
+          </div>
+        </button>
+      </div>
+    );
+  }
+
+  // Versão expandida
   return (
     <div className="fixed bottom-6 right-6 z-50">
       <div className="bg-gradient-to-br from-purple-600 to-purple-800 rounded-2xl p-6 shadow-2xl border-2 border-purple-400/50 backdrop-blur-md">
@@ -21,12 +44,22 @@ export default function RestTimer({
             <Timer className="text-white" size={20} />
             <span className="text-white font-semibold">Descanso</span>
           </div>
-          <button
-            onClick={closeTimer}
-            className="text-white/70 hover:text-white"
-          >
-            <X size={20} />
-          </button>
+          <div className="flex gap-1">
+            <button
+              onClick={toggleMinimize}
+              className="text-white/70 hover:text-white p-1"
+              title="Minimizar"
+            >
+              <ChevronDown size={20} />
+            </button>
+            <button
+              onClick={closeTimer}
+              className="text-white/70 hover:text-white p-1"
+              title="Fechar"
+            >
+              <X size={20} />
+            </button>
+          </div>
         </div>
         
         <div className="text-center mb-4">

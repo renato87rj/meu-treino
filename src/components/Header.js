@@ -1,5 +1,5 @@
-import React from 'react';
-import { Dumbbell, Plus } from 'lucide-react';
+import React, { useState } from 'react';
+import { Dumbbell, Plus, Settings, X } from 'lucide-react';
 
 export default function Header({ 
   view, 
@@ -7,8 +7,22 @@ export default function Header({
   todayRecordsCount, 
   totalExercises,
   onAddClick,
-  onViewChange 
+  onViewChange,
+  timerActive,
+  defaultTime,
+  onSetDefaultTime
 }) {
+  const [showTimerConfig, setShowTimerConfig] = useState(false);
+  const [customMinutes, setCustomMinutes] = useState(Math.floor(defaultTime / 60));
+  const [customSeconds, setCustomSeconds] = useState(defaultTime % 60);
+
+  const handleSaveTimerConfig = () => {
+    const totalSeconds = (parseInt(customMinutes) * 60) + parseInt(customSeconds);
+    if (totalSeconds > 0) {
+      onSetDefaultTime(totalSeconds);
+      setShowTimerConfig(false);
+    }
+  };
   const getTitle = () => {
     if (view === 'plans') return 'Minhas Fichas';
     if (view === 'workout') return selectedPlan?.name || 'Treinar';
@@ -16,31 +30,43 @@ export default function Header({
   };
 
   return (
-    <div className="bg-black/30 backdrop-blur-sm border-b border-purple-500/20 sticky top-0 z-10">
-      <div className="max-w-3xl mx-auto px-4 py-4">
-        <div className="flex items-center justify-between mb-4">
-          <div className="flex items-center gap-3">
-            <Dumbbell className="text-purple-400" size={32} />
-            <div>
-              <h1 className="text-2xl font-bold text-white">
-                {getTitle()}
-              </h1>
-              {view === 'workout' && selectedPlan && (
-                <p className="text-purple-300 text-sm">
-                  {todayRecordsCount}/{totalExercises} exercícios concluídos hoje
-                </p>
+    <>
+      <div className="bg-black/30 backdrop-blur-sm border-b border-purple-500/20 sticky top-0 z-10">
+        <div className="max-w-3xl mx-auto px-4 py-4">
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-3">
+              <Dumbbell className="text-purple-400" size={32} />
+              <div>
+                <h1 className="text-2xl font-bold text-white">
+                  {getTitle()}
+                </h1>
+                {view === 'workout' && selectedPlan && (
+                  <p className="text-purple-300 text-sm">
+                    {todayRecordsCount}/{totalExercises} exercícios concluídos hoje
+                  </p>
+                )}
+              </div>
+            </div>
+            <div className="flex gap-2">
+              {view === 'workout' && (
+                <button
+                  onClick={() => setShowTimerConfig(true)}
+                  className="bg-purple-600/50 hover:bg-purple-600 text-white rounded-full p-3 shadow-lg transition-all hover:scale-105"
+                  title="Configurar timer"
+                >
+                  <Settings size={24} />
+                </button>
+              )}
+              {view === 'plans' && (
+                <button
+                  onClick={onAddClick}
+                  className="bg-purple-600 hover:bg-purple-700 text-white rounded-full p-3 shadow-lg transition-all hover:scale-105"
+                >
+                  <Plus size={24} />
+                </button>
               )}
             </div>
           </div>
-          {(view === 'plans' || view === 'workout') && (
-            <button
-              onClick={onAddClick}
-              className="bg-purple-600 hover:bg-purple-700 text-white rounded-full p-3 shadow-lg transition-all hover:scale-105"
-            >
-              <Plus size={24} />
-            </button>
-          )}
-        </div>
 
         {/* Tabs */}
         <div className="flex gap-2">
@@ -72,6 +98,98 @@ export default function Header({
         </div>
       </div>
     </div>
+
+      {/* Modal de Configuração do Timer */}
+      {showTimerConfig && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-slate-900 rounded-2xl p-6 max-w-md w-full border border-purple-500/30 shadow-2xl">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-xl font-bold text-white">Configurar Timer Padrão</h2>
+              <button
+                onClick={() => setShowTimerConfig(false)}
+                className="text-white/70 hover:text-white"
+              >
+                <X size={24} />
+              </button>
+            </div>
+            
+            <p className="text-purple-300 text-sm mb-4">
+              Defina o tempo padrão de descanso entre séries
+            </p>
+
+            <div className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-purple-200 text-sm mb-2">Minutos</label>
+                  <input
+                    type="number"
+                    min="0"
+                    max="59"
+                    value={customMinutes}
+                    onChange={(e) => setCustomMinutes(e.target.value)}
+                    className="w-full px-4 py-3 bg-white/5 border border-purple-500/30 rounded-xl text-white text-center text-2xl focus:outline-none focus:border-purple-400"
+                  />
+                </div>
+                <div>
+                  <label className="block text-purple-200 text-sm mb-2">Segundos</label>
+                  <input
+                    type="number"
+                    min="0"
+                    max="59"
+                    value={customSeconds}
+                    onChange={(e) => setCustomSeconds(e.target.value)}
+                    className="w-full px-4 py-3 bg-white/5 border border-purple-500/30 rounded-xl text-white text-center text-2xl focus:outline-none focus:border-purple-400"
+                  />
+                </div>
+              </div>
+
+              {/* Atalhos rápidos */}
+              <div className="grid grid-cols-4 gap-2">
+                <button
+                  onClick={() => { setCustomMinutes(1); setCustomSeconds(0); }}
+                  className="bg-purple-600/20 hover:bg-purple-600/40 text-purple-200 text-sm py-2 rounded-lg"
+                >
+                  1:00
+                </button>
+                <button
+                  onClick={() => { setCustomMinutes(1); setCustomSeconds(30); }}
+                  className="bg-purple-600/20 hover:bg-purple-600/40 text-purple-200 text-sm py-2 rounded-lg"
+                >
+                  1:30
+                </button>
+                <button
+                  onClick={() => { setCustomMinutes(2); setCustomSeconds(0); }}
+                  className="bg-purple-600/20 hover:bg-purple-600/40 text-purple-200 text-sm py-2 rounded-lg"
+                >
+                  2:00
+                </button>
+                <button
+                  onClick={() => { setCustomMinutes(3); setCustomSeconds(0); }}
+                  className="bg-purple-600/20 hover:bg-purple-600/40 text-purple-200 text-sm py-2 rounded-lg"
+                >
+                  3:00
+                </button>
+              </div>
+
+              <div className="flex gap-3 mt-6">
+                <button 
+                  onClick={handleSaveTimerConfig} 
+                  className="flex-1 bg-purple-600 hover:bg-purple-700 text-white font-semibold py-3 rounded-xl"
+                >
+                  Salvar
+                </button>
+                <button 
+                  onClick={() => setShowTimerConfig(false)} 
+                  className="flex-1 bg-white/10 hover:bg-white/20 text-white font-semibold py-3 rounded-xl"
+                >
+                  Cancelar
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+    </>
   );
 }
 

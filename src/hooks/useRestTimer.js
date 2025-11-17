@@ -4,6 +4,8 @@ export default function useRestTimer(defaultRestTime = 90) {
   const [timerActive, setTimerActive] = useState(false);
   const [timerSeconds, setTimerSeconds] = useState(defaultRestTime);
   const [timerRunning, setTimerRunning] = useState(false);
+  const [timerMinimized, setTimerMinimized] = useState(false);
+  const [defaultTime, setDefaultTime] = useState(defaultRestTime);
 
   // Timer de descanso
   useEffect(() => {
@@ -23,9 +25,10 @@ export default function useRestTimer(defaultRestTime = 90) {
 
   // Iniciar timer de descanso
   const startRestTimer = () => {
-    setTimerSeconds(defaultRestTime);
+    setTimerSeconds(defaultTime);
     setTimerActive(true);
     setTimerRunning(true);
+    setTimerMinimized(false);
   };
 
   // Toggle play/pause
@@ -35,7 +38,7 @@ export default function useRestTimer(defaultRestTime = 90) {
 
   // Resetar timer
   const resetTimer = () => {
-    setTimerSeconds(defaultRestTime);
+    setTimerSeconds(defaultTime);
     setTimerRunning(false);
   };
 
@@ -43,13 +46,24 @@ export default function useRestTimer(defaultRestTime = 90) {
   const closeTimer = () => {
     setTimerActive(false);
     setTimerRunning(false);
-    setTimerSeconds(defaultRestTime);
+    setTimerSeconds(defaultTime);
+    setTimerMinimized(false);
+  };
+
+  // Toggle minimizar/expandir
+  const toggleMinimize = () => {
+    setTimerMinimized(!timerMinimized);
   };
 
   // Setar tempo customizado
   const setCustomTime = (seconds) => {
     setTimerSeconds(seconds);
     setTimerRunning(true);
+  };
+
+  // Alterar tempo padrão
+  const setDefaultRestTime = (seconds) => {
+    setDefaultTime(seconds);
   };
 
   // Formatar tempo para exibição
@@ -63,11 +77,15 @@ export default function useRestTimer(defaultRestTime = 90) {
     timerActive,
     timerSeconds,
     timerRunning,
+    timerMinimized,
+    defaultTime,
     startRestTimer,
     toggleTimer,
     resetTimer,
     closeTimer,
+    toggleMinimize,
     setCustomTime,
+    setDefaultRestTime,
     formatTime
   };
 }

@@ -5,6 +5,7 @@ export default function PlansView({
   workoutPlans, 
   showAddPlan,
   onSelectPlanForWorkout,
+  onEditPlanName,
   onDuplicatePlan,
   onDeletePlan,
   onCreatePlan,
@@ -19,6 +20,8 @@ export default function PlansView({
   const [expandedPlan, setExpandedPlan] = useState(null);
   const [showAddExerciseForm, setShowAddExerciseForm] = useState(null);
   const [editingExercise, setEditingExercise] = useState(null);
+  const [editingPlanId, setEditingPlanId] = useState(null);
+  const [editingPlanName, setEditingPlanName] = useState('');
   const [newExercise, setNewExercise] = useState({
     name: '',
     sets: '',
@@ -79,6 +82,23 @@ export default function PlansView({
     }
   };
 
+  const startEditingPlanName = (plan) => {
+    setEditingPlanId(plan.id);
+    setEditingPlanName(plan.name);
+  };
+
+  const handleSavePlanName = () => {
+    if (onEditPlanName(editingPlanId, editingPlanName)) {
+      setEditingPlanId(null);
+      setEditingPlanName('');
+    }
+  };
+
+  const cancelEditingPlanName = () => {
+    setEditingPlanId(null);
+    setEditingPlanName('');
+  };
+
   return (
     <div>
       {/* Formulário de Nova Ficha */}
@@ -122,48 +142,86 @@ export default function PlansView({
             const isExpanded = expandedPlan === plan.id;
             
             return (
-              <div
-                key={plan.id}
+            <div
+              key={plan.id}
                 className="bg-white/10 backdrop-blur-md rounded-xl border border-purple-500/20 transition-all"
               >
                 {/* Cabeçalho da Ficha */}
                 <div className="p-4">
-                  <div className="flex items-center justify-between">
+                  <div className="flex items-center justify-between gap-3">
                     <button 
                       onClick={() => togglePlan(plan.id)}
-                      className="flex-1 flex items-center gap-3 text-left"
+                      className="flex items-center gap-3 text-left"
+                      disabled={editingPlanId === plan.id}
                     >
                       {isExpanded ? (
                         <ChevronDown className="text-purple-400 flex-shrink-0" size={20} />
                       ) : (
                         <ChevronRight className="text-purple-400 flex-shrink-0" size={20} />
                       )}
-                      <div>
-                        <h3 className="text-white font-semibold text-lg mb-1">{plan.name}</h3>
-                        <p className="text-purple-300 text-sm">{plan.exercises.length} exercícios</p>
-                      </div>
                     </button>
-                    <div className="flex gap-2">
-                      <button
-                        onClick={() => onSelectPlanForWorkout(plan)}
-                        className="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg font-medium flex items-center gap-2"
-                      >
-                        Treinar
-                      </button>
-                      <button
-                        onClick={() => onDuplicatePlan(plan)}
-                        className="text-purple-400 hover:bg-purple-500/20 p-2 rounded-lg"
-                        title="Duplicar ficha"
-                      >
-                        <Copy size={18} />
-                      </button>
-                      <button
-                        onClick={() => onDeletePlan(plan.id)}
-                        className="text-red-400 hover:bg-red-500/20 p-2 rounded-lg"
-                      >
-                        <Trash2 size={18} />
-                      </button>
-                    </div>
+                    
+                    {editingPlanId === plan.id ? (
+                      <div className="flex-1 flex items-center gap-2">
+                        <input
+                          type="text"
+                          value={editingPlanName}
+                          onChange={(e) => setEditingPlanName(e.target.value)}
+                          className="flex-1 px-3 py-2 bg-white/5 border border-purple-500/30 rounded-lg text-white focus:outline-none focus:border-purple-400"
+                          autoFocus
+                        />
+                        <button
+                          onClick={handleSavePlanName}
+                          className="text-green-400 hover:bg-green-500/20 p-2 rounded-lg"
+                          title="Salvar"
+                        >
+                          <Save size={18} />
+                        </button>
+                        <button
+                          onClick={cancelEditingPlanName}
+                          className="text-red-400 hover:bg-red-500/20 p-2 rounded-lg"
+                          title="Cancelar"
+                        >
+                          <X size={18} />
+                        </button>
+                      </div>
+                    ) : (
+                      <>
+                <div className="flex-1">
+                  <h3 className="text-white font-semibold text-lg mb-1">{plan.name}</h3>
+                  <p className="text-purple-300 text-sm">{plan.exercises.length} exercícios</p>
+                </div>
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => onSelectPlanForWorkout(plan)}
+                    className="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg font-medium flex items-center gap-2"
+                  >
+                            Treinar
+                          </button>
+                          <button
+                            onClick={() => startEditingPlanName(plan)}
+                            className="text-purple-400 hover:bg-purple-500/20 p-2 rounded-lg"
+                            title="Editar nome"
+                          >
+                            <Edit2 size={18} />
+                  </button>
+                  <button
+                    onClick={() => onDuplicatePlan(plan)}
+                    className="text-purple-400 hover:bg-purple-500/20 p-2 rounded-lg"
+                    title="Duplicar ficha"
+                  >
+                    <Copy size={18} />
+                  </button>
+                  <button
+                    onClick={() => onDeletePlan(plan.id)}
+                    className="text-red-400 hover:bg-red-500/20 p-2 rounded-lg"
+                            title="Deletar ficha"
+                  >
+                    <Trash2 size={18} />
+                  </button>
+                        </div>
+                      </>
+                    )}
                   </div>
                 </div>
 
@@ -203,11 +261,10 @@ export default function PlansView({
                               className="px-4 py-2 bg-white/5 border border-purple-500/30 rounded-lg text-white placeholder-purple-300/50 focus:outline-none focus:border-purple-400"
                             />
                             <input
-                              type="number"
-                              min="1"
+                              type="text"
                               value={newExercise.reps}
                               onChange={(e) => setNewExercise({...newExercise, reps: e.target.value})}
-                              placeholder="Reps"
+                              placeholder="Reps (ex: 12 ou 8-12)"
                               className="px-4 py-2 bg-white/5 border border-purple-500/30 rounded-lg text-white placeholder-purple-300/50 focus:outline-none focus:border-purple-400"
                             />
                             <input
@@ -216,7 +273,7 @@ export default function PlansView({
                               step="0.5"
                               value={newExercise.weight}
                               onChange={(e) => setNewExercise({...newExercise, weight: e.target.value})}
-                              placeholder="Kg"
+                              placeholder="Carga (opcional)"
                               className="px-4 py-2 bg-white/5 border border-purple-500/30 rounded-lg text-white placeholder-purple-300/50 focus:outline-none focus:border-purple-400"
                             />
                           </div>
@@ -273,20 +330,24 @@ export default function PlansView({
                                       type="number"
                                       value={editingExercise.sets}
                                       onChange={(e) => setEditingExercise({...editingExercise, sets: e.target.value})}
+                                      placeholder="Séries"
                                       className="px-3 py-2 bg-white/5 border border-purple-500/30 rounded-lg text-white"
                                     />
                                     <input
-                                      type="number"
+                                      type="text"
                                       value={editingExercise.reps}
                                       onChange={(e) => setEditingExercise({...editingExercise, reps: e.target.value})}
+                                      placeholder="Reps (ex: 12 ou 8-12)"
                                       className="px-3 py-2 bg-white/5 border border-purple-500/30 rounded-lg text-white"
                                     />
                                     <input
                                       type="number"
+                                      min="0"
                                       step="0.5"
-                                      value={editingExercise.weight}
+                                      value={editingExercise.weight || ''}
                                       onChange={(e) => setEditingExercise({...editingExercise, weight: e.target.value})}
-                                      className="px-3 py-2 bg-white/5 border border-purple-500/30 rounded-lg text-white"
+                                      placeholder="Carga (opcional)"
+                                      className="px-3 py-2 bg-white/5 border border-purple-500/30 rounded-lg text-white placeholder-purple-300/50"
                                     />
                                   </div>
                                   <div className="flex gap-2">
@@ -327,7 +388,8 @@ export default function PlansView({
                                   <div className="flex-1">
                                     <h4 className="text-white font-medium">{exercise.name}</h4>
                                     <p className="text-purple-300 text-xs">
-                                      {exercise.sets}x{exercise.reps} @ {exercise.weight}kg
+                                      {exercise.sets} x {exercise.reps}
+                                      {exercise.weight && ` - ${exercise.weight}kg`}
                                     </p>
                                   </div>
 
