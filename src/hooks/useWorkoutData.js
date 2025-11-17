@@ -173,29 +173,83 @@ export default function useWorkoutData() {
     }));
   };
 
-  // Registrar treino
+  // Registrar treino - agora aceita array de séries ou dados de uma série individual
   const recordWorkout = (plan, exercise, recordData) => {
-    if (!recordData.sets || !recordData.reps) {
-      alert('Preencha séries e repetições');
-      return false;
+    // Se recordData.sets é um array, significa que está registrando múltiplas séries de uma vez
+    // Se não, está registrando uma série individual ou atualizando um registro existente
+    if (recordData.sets && Array.isArray(recordData.sets)) {
+      // Registro completo com array de séries
+      const record = {
+        id: Date.now(),
+        planId: plan.id,
+        planName: plan.name,
+        exerciseId: exercise.id,
+        exerciseName: exercise.name,
+        plannedSets: exercise.sets,
+        plannedReps: exercise.reps,
+        sets: recordData.sets, // Array de séries: [{ reps: string, weight: number | null }, ...]
+        finalized: false,
+        date: new Date().toISOString()
+      };
+
+      setHistory([record, ...history]);
+      return true;
+    } else if (recordData.setIndex !== undefined) {
+      // Adicionar ou atualizar uma série específica em um registro existente
+      const existingRecord = history.find(r => r.id === recordData.recordId);
+      if (!existingRecord) {
+        alert('Registro não encontrado');
+        return false;
+      }
+
+      const updatedSets = existingRecord.sets ? [...existingRecord.sets] : [];
+      
+      if (recordData.setIndex < updatedSets.length) {
+        // Atualizar série existente
+        updatedSets[recordData.setIndex] = {
+          reps: recordData.reps,
+          weight: recordData.weight ? parseFloat(recordData.weight) : null
+        };
+      } else {
+        // Adicionar nova série
+        updatedSets.push({
+          reps: recordData.reps,
+          weight: recordData.weight ? parseFloat(recordData.weight) : null
+        });
+      }
+
+      setHistory(history.map(record => 
+        record.id === recordData.recordId 
+          ? { ...record, sets: updatedSets, finalized: record.finalized || false }
+          : record
+      ));
+      return true;
+    } else {
+      // Criar novo registro com primeira série
+      if (!recordData.reps) {
+        alert('Preencha as repetições');
+        return false;
+      }
+
+      const record = {
+        id: Date.now(),
+        planId: plan.id,
+        planName: plan.name,
+        exerciseId: exercise.id,
+        exerciseName: exercise.name,
+        plannedSets: exercise.sets,
+        plannedReps: exercise.reps,
+        sets: [{
+          reps: recordData.reps,
+          weight: recordData.weight ? parseFloat(recordData.weight) : null
+        }],
+        finalized: false,
+        date: new Date().toISOString()
+      };
+
+      setHistory([record, ...history]);
+      return true;
     }
-
-    const record = {
-      id: Date.now(),
-      planId: plan.id,
-      planName: plan.name,
-      exerciseId: exercise.id,
-      exerciseName: exercise.name,
-      plannedSets: exercise.sets,
-      plannedReps: exercise.reps,
-      actualSets: parseInt(recordData.sets),
-      actualReps: recordData.reps, // Mantém como string para permitir intervalos
-      actualWeight: recordData.weight ? parseFloat(recordData.weight) : null,
-      date: new Date().toISOString()
-    };
-
-    setHistory([record, ...history]);
-    return true;
   };
 
   // Verificar exercícios concluídos hoje
@@ -209,9 +263,64 @@ export default function useWorkoutData() {
 
   // Editar registro de treino
   const editRecord = (recordId, updatedData) => {
+    // Se updatedData tem setIndex, está editando uma série específica
+    if (updatedData.setIndex !== undefined) {
+      const record = history.find(r => r.id === recordId);
+      if (!record || !record.sets) {
+        alert('Registro ou série não encontrada');
+        return false;
+      }
+
+      const updatedSets = [...record.sets];
+      if (updatedData.setIndex >= 0 && updatedData.setIndex < updatedSets.length) {
+        updatedSets[updatedData.setIndex] = {
+          reps: updatedData.reps,
+          weight: updatedData.weight !== undefined && updatedData.weight !== null 
+            ? parseFloat(updatedData.weight) 
+            : null
+        };
+
+        setHistory(history.map(r => 
+          r.id === recordId 
+            ? { ...r, sets: updatedSets }
+            : r
+        ));
+        return true;
+      }
+      return false;
+    }
+
+    // Edição geral do registro
     setHistory(history.map(record => 
       record.id === recordId 
         ? { ...record, ...updatedData }
+        : record
+    ));
+    return true;
+  };
+
+  // Remover série de um registro
+  const removeSetFromRecord = (recordId, setIndex) => {
+    const record = history.find(r => r.id === recordId);
+    if (!record || !record.sets) {
+      return false;
+    }
+
+    const updatedSets = record.sets.filter((_, index) => index !== setIndex);
+    
+    setHistory(history.map(r => 
+      r.id === recordId 
+        ? { ...r, sets: updatedSets }
+        : r
+    ));
+    return true;
+  };
+
+  // Finalizar exercício (marcar como completo mesmo com menos séries)
+  const finalizeExercise = (recordId) => {
+    setHistory(history.map(record => 
+      record.id === recordId 
+        ? { ...record, finalized: true }
         : record
     ));
     return true;
@@ -244,6 +353,8 @@ export default function useWorkoutData() {
     recordWorkout,
     getTodayRecords,
     editRecord,
+    removeSetFromRecord,
+    finalizeExercise,
     groupHistoryByDate
   };
 }

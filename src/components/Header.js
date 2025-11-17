@@ -101,8 +101,8 @@ export default function Header({
 
       {/* Modal de Configuração do Timer */}
       {showTimerConfig && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div className="bg-slate-900 rounded-2xl p-6 max-w-md w-full border border-purple-500/30 shadow-2xl">
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4 overflow-y-auto">
+          <div className="bg-slate-900 rounded-2xl p-4 sm:p-6 max-w-md w-full mx-auto border border-purple-500/30 shadow-2xl">
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-xl font-bold text-white">Configurar Timer Padrão</h2>
               <button
@@ -118,7 +118,7 @@ export default function Header({
             </p>
 
             <div className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-2 gap-2 sm:gap-4">
                 <div>
                   <label className="block text-purple-200 text-sm mb-2">Minutos</label>
                   <input
@@ -144,7 +144,7 @@ export default function Header({
               </div>
 
               {/* Atalhos rápidos */}
-              <div className="grid grid-cols-4 gap-2">
+              <div className="grid grid-cols-4 gap-1 sm:gap-2">
                 <button
                   onClick={() => { setCustomMinutes(1); setCustomSeconds(0); }}
                   className="bg-purple-600/20 hover:bg-purple-600/40 text-purple-200 text-sm py-2 rounded-lg"
@@ -171,16 +171,16 @@ export default function Header({
                 </button>
               </div>
 
-              <div className="flex gap-3 mt-6">
+              <div className="flex gap-2 sm:gap-3 mt-6">
                 <button 
                   onClick={handleSaveTimerConfig} 
-                  className="flex-1 bg-purple-600 hover:bg-purple-700 text-white font-semibold py-3 rounded-xl"
+                  className="flex-1 bg-purple-600 hover:bg-purple-700 text-white font-semibold py-2 sm:py-3 rounded-xl text-sm sm:text-base"
                 >
                   Salvar
                 </button>
                 <button 
                   onClick={() => setShowTimerConfig(false)} 
-                  className="flex-1 bg-white/10 hover:bg-white/20 text-white font-semibold py-3 rounded-xl"
+                  className="flex-1 bg-white/10 hover:bg-white/20 text-white font-semibold py-2 sm:py-3 rounded-xl text-sm sm:text-base"
                 >
                   Cancelar
                 </button>

@@ -34,6 +34,8 @@ export default function WorkoutTracker() {
     recordWorkout,
     getTodayRecords,
     editRecord,
+    removeSetFromRecord,
+    finalizeExercise,
     groupHistoryByDate
   } = useWorkoutData();
 
@@ -93,7 +95,7 @@ export default function WorkoutTracker() {
   const completedToday = new Set(todayRecords.map(r => r.exerciseId));
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900">
+    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 overflow-x-hidden">
       <InstallPrompt />
       
       {/* Header com navegação */}
@@ -151,6 +153,8 @@ export default function WorkoutTracker() {
             todayRecords={todayRecords}
             onRecordWorkout={handleRecordWorkout}
             onEditRecord={editRecord}
+            onRemoveSet={removeSetFromRecord}
+            onFinalizeExercise={finalizeExercise}
           />
         )}
 
