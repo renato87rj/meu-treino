@@ -1,14 +1,28 @@
+'use client';
+
 import React from 'react';
-import { Dumbbell, Plus } from 'lucide-react';
+import { useRouter } from 'next/navigation';
+import { Dumbbell, Plus, LogOut, Cloud, CloudOff, Loader2 } from 'lucide-react';
+import { useAuth } from '../contexts/AuthContext';
+import { hasPendingOperations } from '../utils/syncQueue';
 
 export default function Header({ 
   view, 
   selectedPlan, 
   todayRecordsCount, 
   totalExercises,
+  isSyncing,
+  isOnline,
   onAddClick,
   onViewChange
 }) {
+  const { logout } = useAuth();
+  const router = useRouter();
+
+  const handleLogout = async () => {
+    await logout();
+    router.push('/login');
+  };
   const getTitle = () => {
     if (view === 'plans') return 'Minhas Fichas';
     if (view === 'workout') return selectedPlan?.name || 'Treinar';
@@ -33,7 +47,28 @@ export default function Header({
                 )}
               </div>
             </div>
-            <div className="flex gap-2">
+            <div className="flex gap-2 items-center">
+              {/* Indicador de sincronização */}
+              <div className="flex items-center gap-2">
+                {isSyncing ? (
+                  <div className="flex items-center gap-1 text-yellow-400" title="Sincronizando...">
+                    <Loader2 size={18} className="animate-spin" />
+                  </div>
+                ) : !isOnline ? (
+                  <div className="flex items-center gap-1 text-orange-400" title="Modo offline - alterações serão sincronizadas quando voltar online">
+                    <CloudOff size={18} />
+                  </div>
+                ) : hasPendingOperations() ? (
+                  <div className="flex items-center gap-1 text-blue-400" title="Há alterações pendentes para sincronizar">
+                    <Cloud size={18} />
+                  </div>
+                ) : (
+                  <div className="flex items-center gap-1 text-green-400" title="Tudo sincronizado">
+                    <Cloud size={18} />
+                  </div>
+                )}
+              </div>
+              
               {view === 'plans' && (
                 <button
                   onClick={onAddClick}
@@ -42,6 +77,13 @@ export default function Header({
                   <Plus size={24} />
                 </button>
               )}
+              <button
+                onClick={handleLogout}
+                className="bg-red-600 hover:bg-red-700 text-white rounded-full p-3 shadow-lg transition-all hover:scale-105"
+                title="Sair"
+              >
+                <LogOut size={20} />
+              </button>
             </div>
           </div>
 

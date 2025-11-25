@@ -1,6 +1,7 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 
 import InstallPrompt from '../components/InstallPrompt';
 import Header from '../components/Header';
@@ -12,17 +13,23 @@ import HistoryView from '../components/HistoryView';
 
 import useWorkoutData from '../hooks/useWorkoutData';
 import useRestTimer from '../hooks/useRestTimer';
+import { useAuth } from '../contexts/AuthContext';
 
 export default function WorkoutTracker() {
+  const { user, loading } = useAuth();
+  const router = useRouter();
   const [view, setView] = useState('plans');
   const [selectedPlan, setSelectedPlan] = useState(null);
   const [showAddPlan, setShowAddPlan] = useState(false);
   const [showAddExercise, setShowAddExercise] = useState(false);
 
-  // Hook de dados de treino
+  // Hook de dados de treino - DEVE estar antes de qualquer early return
   const {
     workoutPlans,
     history,
+    isSyncing,
+    syncError,
+    isOnline,
     createPlan,
     editPlanName,
     duplicatePlan,
@@ -35,9 +42,9 @@ export default function WorkoutTracker() {
     recordWorkout,
     getTodayRecords,
     groupHistoryByDate
-  } = useWorkoutData();
+  } = useWorkoutData(user?.uid || null);
 
-  // Hook do timer de descanso
+  // Hook do timer de descanso - DEVE estar antes de qualquer early return
   const {
     timerActive,
     timerSeconds,
@@ -53,6 +60,24 @@ export default function WorkoutTracker() {
     setDefaultRestTime,
     formatTime
   } = useRestTimer(90);
+
+  useEffect(() => {
+    if (!loading && !user) {
+      router.push('/login');
+    }
+  }, [user, loading, router]);
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 flex items-center justify-center">
+        <div className="text-white text-xl">Carregando...</div>
+      </div>
+    );
+  }
+
+  if (!user) {
+    return null;
+  }
 
   // Selecionar ficha para treinar
   const selectPlanForWorkout = (plan) => {
@@ -98,6 +123,8 @@ export default function WorkoutTracker() {
         selectedPlan={selectedPlan}
         todayRecordsCount={todayRecords.length}
         totalExercises={selectedPlan?.exercises.length || 0}
+        isSyncing={isSyncing}
+        isOnline={isOnline}
         onAddClick={handleAddClick}
         onViewChange={handleViewChange}
       />
