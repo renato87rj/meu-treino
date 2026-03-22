@@ -16,6 +16,10 @@ export default function useWorkoutData(userId = null) {
   // Formato: { [exerciseId]: { weight: number, sets: [{ reps: number }, ...] } }
   const [setProgress, setSetProgress] = useState({});
 
+  // Exercícios substitutos adicionados por plano
+  // Formato: { [planId]: [ { id, name, sets, reps, weight, _substitute, _sourcePlanName, ... } ] }
+  const [substituteExercises, setSubstituteExercises] = useState({});
+
   const isSyncingRef = useRef(false);
   const lastLocalUpdateRef = useRef(null);
   const ignoreNextUpdateRef = useRef({ plans: false, history: false });
@@ -79,6 +83,7 @@ export default function useWorkoutData(userId = null) {
         // Só restaura se for do dia de hoje
         if (parsed.date === new Date().toLocaleDateString('pt-BR')) {
           setSetProgress(parsed.progress || {});
+          setSubstituteExercises(parsed.substitutes || {});
         }
       } catch (error) {
         console.error('Erro ao carregar progresso de séries do localStorage:', error);
@@ -101,14 +106,15 @@ export default function useWorkoutData(userId = null) {
     lastLocalUpdateRef.current = new Date().toISOString();
   }, [history, isInitialized]);
 
-  // Persistir progresso de séries no localStorage (com data para invalidar no dia seguinte)
+  // Persistir progresso de séries e substitutos no localStorage (com data para invalidar no dia seguinte)
   useEffect(() => {
     if (!isInitialized) return;
     localStorage.setItem('workoutSetProgress', JSON.stringify({
       date: new Date().toLocaleDateString('pt-BR'),
-      progress: setProgress
+      progress: setProgress,
+      substitutes: substituteExercises
     }));
-  }, [setProgress, isInitialized]);
+  }, [setProgress, substituteExercises, isInitialized]);
 
   // Configurar listeners em tempo real quando usuário estiver logado
   useEffect(() => {
@@ -445,6 +451,26 @@ export default function useWorkoutData(userId = null) {
   }, [workoutPlans, userId, syncPlan]);
 
   /**
+   * Adiciona um exercício substituto à sessão de treino de um plano.
+   */
+  const addSubstituteExercise = useCallback((planId, exercise) => {
+    setSubstituteExercises(prev => ({
+      ...prev,
+      [planId]: [...(prev[planId] || []), exercise]
+    }));
+  }, []);
+
+  /**
+   * Remove um exercício substituto da sessão de treino de um plano.
+   */
+  const removeSubstituteExercise = useCallback((planId, exerciseId) => {
+    setSubstituteExercises(prev => ({
+      ...prev,
+      [planId]: (prev[planId] || []).filter(e => e.id !== exerciseId)
+    }));
+  }, []);
+
+  /**
    * Atualiza a carga utilizada num exercício durante o treino (antes de confirmar séries).
    * Não salva no histórico ainda — só atualiza o setProgress.
    */
@@ -496,12 +522,29 @@ export default function useWorkoutData(userId = null) {
       weight: current.weight ?? exercise.weight,
       completedSets: updatedSets,
       completed: true,
+      ...(exercise._substitute && {
+        substitute: true,
+        sourcePlanName: exercise._sourcePlanName || 'Avulso'
+      }),
       date: new Date().toISOString(),
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString()
     };
 
-    setHistory(prev => [record, ...prev]);
+    // Upsert: atualiza se já existe registro hoje para este exercício neste plano
+    const today = new Date().toLocaleDateString('pt-BR');
+    const existingIdx = history.findIndex(r => {
+      const d = new Date(r.date).toLocaleDateString('pt-BR');
+      return d === today && r.planId === plan.id && r.exerciseName === exercise.name;
+    });
+
+    if (existingIdx >= 0) {
+      record.id = history[existingIdx].id;
+      record.createdAt = history[existingIdx].createdAt;
+      setHistory(prev => prev.map((r, i) => i === existingIdx ? record : r));
+    } else {
+      setHistory(prev => [record, ...prev]);
+    }
 
     // Remove o progresso parcial deste exercício
     setSetProgress(prev => {
@@ -510,8 +553,10 @@ export default function useWorkoutData(userId = null) {
       return next;
     });
 
-    // Persiste a carga no plano se foi alterada
-    persistWeightToPlan(plan.id, exercise.id, current.weight);
+    // Persiste a carga no plano se foi alterada (apenas exercícios da ficha)
+    if (!exercise._substitute) {
+      persistWeightToPlan(plan.id, exercise.id, current.weight);
+    }
 
     if (userId) {
       ignoreNextUpdateRef.current.history = true;
@@ -519,7 +564,7 @@ export default function useWorkoutData(userId = null) {
     }
 
     return true;
-  }, [setProgress, userId, syncHistory, persistWeightToPlan]);
+  }, [setProgress, history, userId, syncHistory, persistWeightToPlan]);
 
   /**
    * Conclui um exercício de uma vez, sem exigir confirmação série a série.
@@ -548,12 +593,29 @@ export default function useWorkoutData(userId = null) {
       weight: current.weight ?? exercise.weight,
       completedSets,
       completed: true,
+      ...(exercise._substitute && {
+        substitute: true,
+        sourcePlanName: exercise._sourcePlanName || 'Avulso'
+      }),
       date: new Date().toISOString(),
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString()
     };
 
-    setHistory(prev => [record, ...prev]);
+    // Upsert: atualiza se já existe registro hoje para este exercício neste plano
+    const today = new Date().toLocaleDateString('pt-BR');
+    const existingIdx = history.findIndex(r => {
+      const d = new Date(r.date).toLocaleDateString('pt-BR');
+      return d === today && r.planId === plan.id && r.exerciseName === exercise.name;
+    });
+
+    if (existingIdx >= 0) {
+      record.id = history[existingIdx].id;
+      record.createdAt = history[existingIdx].createdAt;
+      setHistory(prev => prev.map((r, i) => i === existingIdx ? record : r));
+    } else {
+      setHistory(prev => [record, ...prev]);
+    }
 
     setSetProgress(prev => {
       const next = { ...prev };
@@ -561,8 +623,10 @@ export default function useWorkoutData(userId = null) {
       return next;
     });
 
-    // Persiste a carga no plano se foi alterada
-    persistWeightToPlan(plan.id, exercise.id, current.weight);
+    // Persiste a carga no plano se foi alterada (apenas exercícios da ficha)
+    if (!exercise._substitute) {
+      persistWeightToPlan(plan.id, exercise.id, current.weight);
+    }
 
     if (userId) {
       ignoreNextUpdateRef.current.history = true;
@@ -570,7 +634,7 @@ export default function useWorkoutData(userId = null) {
     }
 
     return true;
-  }, [setProgress, userId, syncHistory, persistWeightToPlan]);
+  }, [setProgress, history, userId, syncHistory, persistWeightToPlan]);
 
   /**
    * Desfaz o registro completo de um exercício e restaura o progresso parcial
@@ -580,9 +644,9 @@ export default function useWorkoutData(userId = null) {
     const today = new Date().toLocaleDateString('pt-BR');
     const existingRecord = history.find(record => {
       const recordDate = new Date(record.date).toLocaleDateString('pt-BR');
-      return recordDate === today &&
-        record.planId === plan.id &&
-        record.exerciseId === exercise.id;
+      if (recordDate !== today || record.planId !== plan.id) return false;
+      // Para substitutos, o exerciseId no record pode não bater com o id efêmero atual
+      return record.exerciseId === exercise.id || record.exerciseName === exercise.name;
     });
 
     if (!existingRecord) return;
@@ -657,6 +721,9 @@ export default function useWorkoutData(userId = null) {
     confirmSet,
     completeExercise,
     undoExercise,
+    substituteExercises,
+    addSubstituteExercise,
+    removeSubstituteExercise,
     getTodayRecords,
     removeRecord,
     groupHistoryByDate

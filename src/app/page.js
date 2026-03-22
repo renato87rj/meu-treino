@@ -44,8 +44,10 @@ export default function WorkoutTracker() {
     confirmSet,
     completeExercise,
     undoExercise,
-    getTodayRecords,
-    groupHistoryByDate
+    substituteExercises,
+    addSubstituteExercise,
+    removeSubstituteExercise,
+    getTodayRecords
   } = useWorkoutData(user?.uid || null);
 
   // Hook do timer de descanso - DEVE estar antes de qualquer early return
@@ -110,7 +112,8 @@ export default function WorkoutTracker() {
   const todayRecords = view === 'workout' && selectedPlan 
     ? getTodayRecords(selectedPlan.id) 
     : [];
-  const completedToday = new Set(todayRecords.map(r => r.exerciseId));
+  const completedTodayIds = new Set(todayRecords.map(r => r.exerciseId));
+  const completedTodayNames = new Set(todayRecords.map(r => r.exerciseName));
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 overflow-x-hidden">
@@ -174,13 +177,18 @@ export default function WorkoutTracker() {
         {view === 'workout' && (
           <WorkoutView
             selectedPlan={selectedPlan}
-            completedToday={completedToday}
+            allPlans={workoutPlans}
+            completedTodayIds={completedTodayIds}
+            completedTodayNames={completedTodayNames}
             todayRecords={todayRecords}
             setProgress={setProgress}
             onConfirmSet={confirmSet}
             onUpdateWeight={updateExerciseWeight}
             onCompleteExercise={completeExercise}
             onUndoExercise={undoExercise}
+            substituteExercises={substituteExercises[selectedPlan?.id] || []}
+            onAddSubstitute={(ex) => addSubstituteExercise(selectedPlan.id, ex)}
+            onRemoveSubstitute={(exId) => removeSubstituteExercise(selectedPlan.id, exId)}
           />
         )}
 
@@ -188,7 +196,7 @@ export default function WorkoutTracker() {
         {view === 'history' && (
           <HistoryView
             history={history}
-            groupHistoryByDate={groupHistoryByDate}
+            workoutPlans={workoutPlans}
           />
         )}
       </div>

@@ -1,28 +1,45 @@
 import React, { useState } from 'react';
-import { Dumbbell, CheckCircle, ChevronDown, ChevronUp, RotateCcw, Check } from 'lucide-react';
+import { Dumbbell, CheckCircle, ChevronDown, ChevronUp, RotateCcw, Check, Plus, X, Search, ArrowRightLeft } from 'lucide-react';
 
 export default function WorkoutView({
   selectedPlan,
-  completedToday,       // Set de exerciseId concluídos hoje
+  allPlans,             // todas as fichas (para importar exercícios)
+  completedTodayIds,    // Set de exerciseId concluídos hoje
+  completedTodayNames,  // Set de exerciseName concluídos hoje
   todayRecords,         // array completo de registros de hoje
   setProgress,          // { [exerciseId]: { weight, sets: [{reps}] } }
   onConfirmSet,         // (plan, exercise, setIndex, reps) => bool
   onUpdateWeight,       // (exerciseId, weight) => void
   onCompleteExercise,   // (plan, exercise, setsData) => bool
-  onUndoExercise        // (plan, exercise) => void
+  onUndoExercise,       // (plan, exercise) => void
+  substituteExercises,  // array de exercícios substitutos persistidos no hook
+  onAddSubstitute,      // (exercise) => void
+  onRemoveSubstitute    // (exerciseId) => void
 }) {
   // Controla quais cards estão expandidos
   const [expanded, setExpanded] = useState({});
   // Valores dos inputs de reps por série: { [exerciseId]: { [setIndex]: string } }
   const [repsInput, setRepsInput] = useState({});
+  // Modal de seleção de exercício substituto
+  const [showPicker, setShowPicker] = useState(false);
+  // Aba do picker: 'plans' ou 'custom'
+  const [pickerTab, setPickerTab] = useState('plans');
+  // Busca dentro do picker
+  const [pickerSearch, setPickerSearch] = useState('');
+  // Formulário de exercício avulso
+  const [customForm, setCustomForm] = useState({ name: '', sets: '3', reps: '12', weight: '' });
 
   if (!selectedPlan) return null;
+
+  // Fichas que não são a atual
+  const otherPlans = (allPlans || []).filter(p => p.id !== selectedPlan.id);
 
   const toggleExpand = (exerciseId) => {
     setExpanded(prev => ({ ...prev, [exerciseId]: !prev[exerciseId] }));
   };
 
-  const isCompleted = (exerciseId) => completedToday.has(exerciseId);
+  const isCompleted = (exercise) =>
+    completedTodayIds.has(exercise.id) || completedTodayNames.has(exercise.name);
 
   const getProgress = (exerciseId) => setProgress[exerciseId] || { weight: null, sets: [] };
 
@@ -72,7 +89,9 @@ export default function WorkoutView({
   };
 
   const handleUndo = (exercise) => {
-    const record = todayRecords.find(r => r.exerciseId === exercise.id);
+    const record = todayRecords.find(r =>
+      r.exerciseId === exercise.id || r.exerciseName === exercise.name
+    );
     onUndoExercise(selectedPlan, exercise);
     setExpanded(prev => ({ ...prev, [exercise.id]: true }));
 
@@ -85,6 +104,47 @@ export default function WorkoutView({
       setRepsInput(prev => ({ ...prev, [exercise.id]: prefilled }));
     }
   };
+
+  // Importar exercício de outra ficha
+  const handleImportExercise = (exercise, sourcePlanName) => {
+    const imported = {
+      ...exercise,
+      id: Date.now() + Math.random(),
+      _substitute: true,
+      _sourcePlanName: sourcePlanName,
+      _originalName: exercise.name
+    };
+    onAddSubstitute(imported);
+    setExpanded(prev => ({ ...prev, [imported.id]: true }));
+    setShowPicker(false);
+    setPickerSearch('');
+  };
+
+  // Criar exercício avulso
+  const handleCreateCustom = () => {
+    if (!customForm.name.trim()) return;
+    const custom = {
+      id: Date.now() + Math.random(),
+      name: customForm.name.trim(),
+      sets: parseInt(customForm.sets) || 3,
+      reps: customForm.reps || '12',
+      weight: customForm.weight ? parseFloat(customForm.weight) : null,
+      _substitute: true,
+      _sourcePlanName: 'Avulso'
+    };
+    onAddSubstitute(custom);
+    setExpanded(prev => ({ ...prev, [custom.id]: true }));
+    setCustomForm({ name: '', sets: '3', reps: '12', weight: '' });
+    setShowPicker(false);
+  };
+
+  // Remove exercício extra (não registrado)
+  const handleRemoveExtra = (exerciseId) => {
+    onRemoveSubstitute(exerciseId);
+  };
+
+  // Todos os exercícios a renderizar (ficha + extras)
+  const allExercises = [...selectedPlan.exercises, ...(substituteExercises || [])];
 
   return (
     <div>
@@ -100,7 +160,7 @@ export default function WorkoutView({
       </div>
 
       {/* Lista de Exercícios */}
-      {selectedPlan.exercises.length === 0 ? (
+      {allExercises.length === 0 ? (
         <div className="text-center py-16">
           <Dumbbell className="mx-auto text-purple-400/30 mb-4" size={64} />
           <p className="text-purple-300/70 text-lg">Nenhum exercício nesta ficha</p>
@@ -108,8 +168,9 @@ export default function WorkoutView({
         </div>
       ) : (
         <div className="space-y-3">
-          {selectedPlan.exercises.map((exercise) => {
-            const completed = isCompleted(exercise.id);
+          {allExercises.map((exercise) => {
+            const isSubstitute = !!exercise._substitute;
+            const completed = isCompleted(exercise);
             const progress = getProgress(exercise.id);
             const isOpen = expanded[exercise.id] ?? false;
             const confirmedCount = confirmedSetsCount(exercise.id);
@@ -133,11 +194,19 @@ export default function WorkoutView({
                   onClick={() => toggleExpand(exercise.id)}
                 >
                   <div className="flex-1 min-w-0">
-                    <h3 className="text-white font-semibold text-base break-words">{exercise.name}</h3>
+                    <h3 className="text-white font-semibold text-base break-words">
+                      {exercise.name}
+                    </h3>
                     <p className="text-purple-300 text-sm mt-0.5">
                       {exercise.sets} séries · {exercise.reps} reps
                       {exercise.weight ? ` · ${exercise.weight} kg` : ''}
                     </p>
+                    {isSubstitute && (
+                      <span className="inline-flex items-center gap-1 mt-1 text-xs text-orange-400/80">
+                        <ArrowRightLeft size={11} />
+                        {exercise._sourcePlanName}
+                      </span>
+                    )}
                   </div>
 
                   <div className="flex items-center gap-2 flex-shrink-0">
@@ -283,6 +352,176 @@ export default function WorkoutView({
               </div>
             );
           })}
+          {/* Botão para adicionar exercício substituto */}
+          <button
+            onClick={() => setShowPicker(true)}
+            className="w-full flex items-center justify-center gap-2 py-3 rounded-xl border-2 border-dashed border-purple-500/30 text-purple-400/70 text-sm font-medium hover:border-purple-500/50 hover:text-purple-300 transition-all active:scale-[0.98]"
+          >
+            <Plus size={16} />
+            Adicionar exercício substituto
+          </button>
+        </div>
+      )}
+
+      {/* Modal picker de exercício substituto */}
+      {showPicker && (
+        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center">
+          {/* Overlay */}
+          <div
+            className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+            onClick={() => { setShowPicker(false); setPickerSearch(''); }}
+          />
+
+          {/* Drawer / Modal */}
+          <div className="relative w-full max-w-lg max-h-[85vh] bg-slate-900 border border-purple-500/30 rounded-t-2xl sm:rounded-2xl overflow-hidden flex flex-col animate-slide-up">
+            {/* Header */}
+            <div className="flex items-center justify-between px-4 py-3 border-b border-purple-500/20">
+              <h3 className="text-white font-semibold">Adicionar exercício</h3>
+              <button
+                onClick={() => { setShowPicker(false); setPickerSearch(''); }}
+                className="text-purple-400/60 hover:text-purple-300 p-1"
+              >
+                <X size={20} />
+              </button>
+            </div>
+
+            {/* Abas */}
+            <div className="flex border-b border-purple-500/20">
+              <button
+                onClick={() => setPickerTab('plans')}
+                className={`flex-1 py-2.5 text-sm font-medium transition-colors ${
+                  pickerTab === 'plans'
+                    ? 'text-purple-300 border-b-2 border-purple-400'
+                    : 'text-purple-400/50 hover:text-purple-300'
+                }`}
+              >
+                De outra ficha
+              </button>
+              <button
+                onClick={() => setPickerTab('custom')}
+                className={`flex-1 py-2.5 text-sm font-medium transition-colors ${
+                  pickerTab === 'custom'
+                    ? 'text-purple-300 border-b-2 border-purple-400'
+                    : 'text-purple-400/50 hover:text-purple-300'
+                }`}
+              >
+                Avulso
+              </button>
+            </div>
+
+            {/* Conteúdo */}
+            <div className="flex-1 overflow-y-auto p-4">
+              {pickerTab === 'plans' ? (
+                <div className="space-y-4">
+                  {/* Busca */}
+                  <div className="relative">
+                    <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-purple-400/40" />
+                    <input
+                      type="text"
+                      value={pickerSearch}
+                      onChange={e => setPickerSearch(e.target.value)}
+                      placeholder="Buscar exercício..."
+                      className="w-full bg-white/6 border border-purple-500/25 rounded-lg pl-9 pr-3 py-2 text-sm text-white placeholder:text-purple-400/30 focus:outline-none focus:border-purple-400/60"
+                    />
+                  </div>
+
+                  {otherPlans.length === 0 ? (
+                    <p className="text-purple-400/50 text-sm text-center py-6">Você só tem uma ficha</p>
+                  ) : (
+                    otherPlans.map(plan => {
+                      const filtered = plan.exercises.filter(ex =>
+                        !pickerSearch || ex.name.toLowerCase().includes(pickerSearch.toLowerCase())
+                      );
+                      if (filtered.length === 0) return null;
+
+                      return (
+                        <div key={plan.id}>
+                          <p className="text-purple-300/60 text-xs font-medium uppercase tracking-wide mb-2">
+                            {plan.name}
+                          </p>
+                          <div className="space-y-1.5">
+                            {filtered.map(ex => (
+                              <button
+                                key={ex.id}
+                                onClick={() => handleImportExercise(ex, plan.name)}
+                                className="w-full flex items-center justify-between bg-white/5 hover:bg-white/10 border border-purple-500/15 hover:border-purple-500/30 rounded-lg px-3 py-2.5 text-left transition-all"
+                              >
+                                <div>
+                                  <p className="text-white text-sm font-medium">{ex.name}</p>
+                                  <p className="text-purple-400/60 text-xs">
+                                    {ex.sets}x{ex.reps}
+                                    {ex.weight ? ` · ${ex.weight} kg` : ''}
+                                  </p>
+                                </div>
+                                <Plus size={16} className="text-purple-400/50" />
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                      );
+                    })
+                  )}
+                </div>
+              ) : (
+                /* Aba avulso */
+                <div className="space-y-3">
+                  <div>
+                    <label className="text-purple-300/70 text-xs mb-1 block">Nome do exercício</label>
+                    <input
+                      type="text"
+                      value={customForm.name}
+                      onChange={e => setCustomForm(prev => ({ ...prev, name: e.target.value }))}
+                      placeholder="Ex: Voador"
+                      className="w-full bg-white/6 border border-purple-500/25 rounded-lg px-3 py-2 text-sm text-white placeholder:text-purple-400/30 focus:outline-none focus:border-purple-400/60"
+                    />
+                  </div>
+                  <div className="grid grid-cols-3 gap-3">
+                    <div>
+                      <label className="text-purple-300/70 text-xs mb-1 block">Séries</label>
+                      <input
+                        type="number"
+                        inputMode="numeric"
+                        min="1"
+                        value={customForm.sets}
+                        onChange={e => setCustomForm(prev => ({ ...prev, sets: e.target.value }))}
+                        className="w-full bg-white/6 border border-purple-500/25 rounded-lg px-3 py-2 text-sm text-white text-center focus:outline-none focus:border-purple-400/60"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-purple-300/70 text-xs mb-1 block">Reps</label>
+                      <input
+                        type="text"
+                        value={customForm.reps}
+                        onChange={e => setCustomForm(prev => ({ ...prev, reps: e.target.value }))}
+                        placeholder="12"
+                        className="w-full bg-white/6 border border-purple-500/25 rounded-lg px-3 py-2 text-sm text-white text-center focus:outline-none focus:border-purple-400/60"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-purple-300/70 text-xs mb-1 block">Carga (kg)</label>
+                      <input
+                        type="number"
+                        inputMode="decimal"
+                        min="0"
+                        step="0.5"
+                        value={customForm.weight}
+                        onChange={e => setCustomForm(prev => ({ ...prev, weight: e.target.value }))}
+                        placeholder="0"
+                        className="w-full bg-white/6 border border-purple-500/25 rounded-lg px-3 py-2 text-sm text-white text-center focus:outline-none focus:border-purple-400/60"
+                      />
+                    </div>
+                  </div>
+                  <button
+                    onClick={handleCreateCustom}
+                    disabled={!customForm.name.trim()}
+                    className="w-full mt-1 py-2.5 rounded-lg bg-purple-600 hover:bg-purple-700 text-white text-sm font-medium transition-all active:scale-[0.98] disabled:opacity-40 disabled:pointer-events-none"
+                  >
+                    Adicionar
+                  </button>
+                </div>
+              )}
+            </div>
+          </div>
         </div>
       )}
     </div>
