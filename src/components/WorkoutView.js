@@ -14,7 +14,8 @@ export default function WorkoutView({
   onUndoExercise,       // (plan, exercise) => void
   substituteExercises,  // array de exercícios substitutos persistidos no hook
   onAddSubstitute,      // (exercise) => void
-  onRemoveSubstitute    // (exerciseId) => void
+  onRemoveSubstitute,   // (exerciseId) => void
+  onStartRestTimer      // () => void — dispara cronômetro de descanso
 }) {
   // Controla quais cards estão expandidos
   const [expanded, setExpanded] = useState({});
@@ -63,6 +64,9 @@ export default function WorkoutView({
       setExpanded(prev => ({ ...prev, [exercise.id]: false }));
     }
 
+    // Dispara cronômetro de descanso automaticamente
+    if (onStartRestTimer) onStartRestTimer();
+
     // Limpa o input da série confirmada
     setRepsInput(prev => {
       const next = { ...prev };
@@ -80,6 +84,9 @@ export default function WorkoutView({
 
     onCompleteExercise(selectedPlan, exercise, setsData);
     setExpanded(prev => ({ ...prev, [exercise.id]: false }));
+
+    // Dispara cronômetro de descanso automaticamente
+    if (onStartRestTimer) onStartRestTimer();
 
     setRepsInput(prev => {
       const next = { ...prev };

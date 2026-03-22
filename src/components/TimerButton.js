@@ -1,9 +1,10 @@
 import React, { useState } from 'react';
-import { Timer, X, Play } from 'lucide-react';
+import { Timer, X, Play, Save, Check } from 'lucide-react';
 
 export default function TimerButton({ 
   onStartTimer,
-  defaultTime
+  defaultTime,
+  onSetDefaultTime
 }) {
   const [showTimerConfig, setShowTimerConfig] = useState(false);
   const [customMinutes, setCustomMinutes] = useState(Math.floor(defaultTime / 60));
@@ -20,9 +21,21 @@ export default function TimerButton({
     }
   };
 
+  const [saved, setSaved] = useState(false);
+
   const handleQuickTime = (minutes, seconds) => {
     setCustomMinutes(minutes);
     setCustomSeconds(seconds);
+    setSaved(false);
+  };
+
+  const handleSaveDefault = () => {
+    const totalSeconds = (parseInt(customMinutes) * 60) + parseInt(customSeconds);
+    if (totalSeconds > 0 && onSetDefaultTime) {
+      onSetDefaultTime(totalSeconds);
+      setSaved(true);
+      setTimeout(() => setSaved(false), 2000);
+    }
   };
 
   return (
@@ -108,7 +121,20 @@ export default function TimerButton({
                 </button>
               </div>
 
-              <div className="flex gap-2 sm:gap-3 mt-6">
+              {/* Salvar como padrão */}
+              <button
+                onClick={handleSaveDefault}
+                className={`w-full flex items-center justify-center gap-2 py-2 rounded-lg text-sm transition-all ${
+                  saved
+                    ? 'bg-green-600/30 text-green-400 border border-green-500/30'
+                    : 'bg-white/5 hover:bg-white/10 text-purple-300 border border-purple-500/20'
+                }`}
+              >
+                {saved ? <Check size={14} /> : <Save size={14} />}
+                {saved ? 'Salvo!' : 'Salvar como padrão'}
+              </button>
+
+              <div className="flex gap-2 sm:gap-3 mt-2">
                 <button 
                   onClick={handleStartTimer} 
                   className="flex-1 bg-green-600 hover:bg-green-700 text-white font-semibold py-2 sm:py-3 rounded-xl text-sm sm:text-base flex items-center justify-center gap-2"

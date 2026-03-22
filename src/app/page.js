@@ -56,6 +56,7 @@ export default function WorkoutTracker() {
     timerSeconds,
     timerRunning,
     timerMinimized,
+    timerFinished,
     defaultTime,
     startRestTimer,
     toggleTimer,
@@ -64,6 +65,7 @@ export default function WorkoutTracker() {
     toggleMinimize,
     setCustomTime,
     setDefaultRestTime,
+    dismissFinished,
     formatTime
   } = useRestTimer(90);
 
@@ -138,11 +140,13 @@ export default function WorkoutTracker() {
           timerSeconds={timerSeconds}
           timerRunning={timerRunning}
           timerMinimized={timerMinimized}
+          timerFinished={timerFinished}
           formatTime={formatTime}
           toggleTimer={toggleTimer}
           resetTimer={resetTimer}
           closeTimer={closeTimer}
           toggleMinimize={toggleMinimize}
+          dismissFinished={dismissFinished}
           setCustomTime={setCustomTime}
         />
 
@@ -151,6 +155,7 @@ export default function WorkoutTracker() {
           <TimerButton
             onStartTimer={startRestTimer}
             defaultTime={defaultTime}
+            onSetDefaultTime={setDefaultRestTime}
           />
         )}
 
@@ -189,6 +194,7 @@ export default function WorkoutTracker() {
             substituteExercises={substituteExercises[selectedPlan?.id] || []}
             onAddSubstitute={(ex) => addSubstituteExercise(selectedPlan.id, ex)}
             onRemoveSubstitute={(exId) => removeSubstituteExercise(selectedPlan.id, exId)}
+            onStartRestTimer={startRestTimer}
           />
         )}
 
