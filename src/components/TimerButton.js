@@ -9,19 +9,17 @@ export default function TimerButton({
   const [showTimerConfig, setShowTimerConfig] = useState(false);
   const [customMinutes, setCustomMinutes] = useState(Math.floor(defaultTime / 60));
   const [customSeconds, setCustomSeconds] = useState(defaultTime % 60);
+  const [saved, setSaved] = useState(false);
 
   const handleStartTimer = () => {
     const totalSeconds = (parseInt(customMinutes) * 60) + parseInt(customSeconds);
     if (totalSeconds > 0) {
       onStartTimer(totalSeconds);
       setShowTimerConfig(false);
-      // Resetar para o padrão após iniciar
       setCustomMinutes(Math.floor(defaultTime / 60));
       setCustomSeconds(defaultTime % 60);
     }
   };
-
-  const [saved, setSaved] = useState(false);
 
   const handleQuickTime = (minutes, seconds) => {
     setCustomMinutes(minutes);
@@ -40,112 +38,113 @@ export default function TimerButton({
 
   return (
     <>
-      {/* Botão Flutuante - posicionado no canto inferior direito */}
+      {/* Botão flutuante — acima do TabBar */}
       <button
         onClick={() => setShowTimerConfig(true)}
-        className="fixed bottom-6 right-6 z-40 bg-gradient-to-br from-purple-600 to-purple-800 rounded-full p-4 shadow-2xl border-2 border-purple-400/50 backdrop-blur-md hover:scale-105 transition-transform"
+        className="fixed bottom-[80px] right-4 z-40 w-12 h-12 rounded-full flex items-center justify-center
+                   active:scale-95 transition-transform"
+        style={{
+          background: 'rgba(124, 58, 237, 0.92)',
+          border: '0.5px solid rgba(167, 139, 250, 0.35)',
+          backdropFilter: 'blur(12px)',
+        }}
         title="Iniciar timer de descanso"
       >
-        <Timer className="text-white" size={24} />
+        <Timer className="text-white" size={20} />
       </button>
 
-      {/* Modal de Configuração e Início do Timer */}
+      {/* Modal slide-up */}
       {showTimerConfig && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4 overflow-y-auto">
-          <div className="bg-slate-900 rounded-2xl p-4 sm:p-6 max-w-md w-full mx-auto border border-purple-500/30 shadow-2xl">
+        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center px-0 sm:px-4"
+             style={{ background: 'rgba(8, 6, 15, 0.75)', backdropFilter: 'blur(6px)' }}
+             onClick={() => setShowTimerConfig(false)}>
+          <div
+            className="w-full sm:max-w-md rounded-t-[28px] sm:rounded-[24px] p-6 animate-slide-up"
+            style={{
+              background: 'rgba(15, 10, 30, 0.98)',
+              border: '0.5px solid rgba(139, 92, 246, 0.25)',
+              backdropFilter: 'blur(20px)',
+            }}
+            onClick={e => e.stopPropagation()}>
+            <div className="w-10 h-1 rounded-full bg-purple-500/30 mx-auto mb-5" />
+
             <div className="flex items-center justify-between mb-4">
-              <h2 className="text-xl font-bold text-white">Timer de Descanso</h2>
+              <h2 className="text-[16px] font-bold text-white">Timer de Descanso</h2>
               <button
                 onClick={() => setShowTimerConfig(false)}
-                className="text-white/70 hover:text-white"
-              >
-                <X size={24} />
+                className="w-7 h-7 rounded-full flex items-center justify-center bg-white/5 border border-purple-500/15">
+                <X size={13} className="text-[#7c6f9e]" />
               </button>
             </div>
             
-            <p className="text-purple-300 text-sm mb-4">
+            <p className="text-[12px] text-[#7c6f9e] mb-4">
               Escolha o tempo de descanso desejado
             </p>
 
             <div className="space-y-4">
-              <div className="grid grid-cols-2 gap-2 sm:gap-4">
+              <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-purple-200 text-sm mb-2">Minutos</label>
+                  <label className="block text-[11px] text-[#7c6f9e] mb-1.5">Minutos</label>
                   <input
-                    type="number"
-                    min="0"
-                    max="59"
+                    type="number" min="0" max="59"
                     value={customMinutes}
                     onChange={(e) => setCustomMinutes(e.target.value)}
-                    className="w-full px-4 py-3 bg-white/5 border border-purple-500/30 rounded-xl text-white text-center text-2xl focus:outline-none focus:border-purple-400"
+                    className="w-full bg-white/[0.05] border border-purple-500/25 rounded-[12px]
+                               px-4 py-3 text-[22px] text-white text-center
+                               focus:outline-none focus:border-purple-400/50"
                   />
                 </div>
                 <div>
-                  <label className="block text-purple-200 text-sm mb-2">Segundos</label>
+                  <label className="block text-[11px] text-[#7c6f9e] mb-1.5">Segundos</label>
                   <input
-                    type="number"
-                    min="0"
-                    max="59"
+                    type="number" min="0" max="59"
                     value={customSeconds}
                     onChange={(e) => setCustomSeconds(e.target.value)}
-                    className="w-full px-4 py-3 bg-white/5 border border-purple-500/30 rounded-xl text-white text-center text-2xl focus:outline-none focus:border-purple-400"
+                    className="w-full bg-white/[0.05] border border-purple-500/25 rounded-[12px]
+                               px-4 py-3 text-[22px] text-white text-center
+                               focus:outline-none focus:border-purple-400/50"
                   />
                 </div>
               </div>
 
               {/* Atalhos rápidos */}
-              <div className="grid grid-cols-4 gap-1 sm:gap-2">
-                <button
-                  onClick={() => handleQuickTime(1, 0)}
-                  className="bg-purple-600/20 hover:bg-purple-600/40 text-purple-200 text-sm py-2 rounded-lg"
-                >
-                  1:00
-                </button>
-                <button
-                  onClick={() => handleQuickTime(1, 30)}
-                  className="bg-purple-600/20 hover:bg-purple-600/40 text-purple-200 text-sm py-2 rounded-lg"
-                >
-                  1:30
-                </button>
-                <button
-                  onClick={() => handleQuickTime(2, 0)}
-                  className="bg-purple-600/20 hover:bg-purple-600/40 text-purple-200 text-sm py-2 rounded-lg"
-                >
-                  2:00
-                </button>
-                <button
-                  onClick={() => handleQuickTime(3, 0)}
-                  className="bg-purple-600/20 hover:bg-purple-600/40 text-purple-200 text-sm py-2 rounded-lg"
-                >
-                  3:00
-                </button>
+              <div className="grid grid-cols-4 gap-2">
+                {[[1,0],[1,30],[2,0],[3,0]].map(([m,s]) => (
+                  <button key={`${m}:${s}`}
+                    onClick={() => handleQuickTime(m, s)}
+                    className="py-2 rounded-[10px] text-[12px] font-semibold text-purple-300
+                               bg-purple-500/15 border border-purple-500/20
+                               active:bg-purple-500/25 transition-colors">
+                    {m}:{String(s).padStart(2,'0')}
+                  </button>
+                ))}
               </div>
 
               {/* Salvar como padrão */}
               <button
                 onClick={handleSaveDefault}
-                className={`w-full flex items-center justify-center gap-2 py-2 rounded-lg text-sm transition-all ${
+                className={`w-full flex items-center justify-center gap-2 py-2.5 rounded-[12px] text-[12px] font-semibold transition-all ${
                   saved
-                    ? 'bg-green-600/30 text-green-400 border border-green-500/30'
-                    : 'bg-white/5 hover:bg-white/10 text-purple-300 border border-purple-500/20'
-                }`}
-              >
-                {saved ? <Check size={14} /> : <Save size={14} />}
+                    ? 'bg-green-500/[0.08] text-green-400 border border-green-500/25'
+                    : 'bg-white/[0.05] text-[#7c6f9e] border border-purple-500/15'
+                }`}>
+                {saved ? <Check size={13} /> : <Save size={13} />}
                 {saved ? 'Salvo!' : 'Salvar como padrão'}
               </button>
 
-              <div className="flex gap-2 sm:gap-3 mt-2">
+              <div className="flex gap-3 mt-1">
                 <button 
                   onClick={handleStartTimer} 
-                  className="flex-1 bg-green-600 hover:bg-green-700 text-white font-semibold py-2 sm:py-3 rounded-xl text-sm sm:text-base flex items-center justify-center gap-2"
-                >
-                  <Play size={18} />
+                  className="flex-1 bg-purple-600 text-white font-semibold text-[14px]
+                             py-3.5 rounded-[14px] active:scale-[0.98] transition-transform
+                             flex items-center justify-center gap-2">
+                  <Play size={15} />
                   Iniciar
                 </button>
                 <button 
                   onClick={() => setShowTimerConfig(false)} 
-                  className="flex-1 bg-white/10 hover:bg-white/20 text-white font-semibold py-2 sm:py-3 rounded-xl text-sm sm:text-base"
-                >
+                  className="flex-1 bg-white/[0.05] border border-purple-500/15 text-[#7c6f9e] font-semibold text-[14px]
+                             py-3.5 rounded-[14px] active:scale-[0.98] transition-transform">
                   Cancelar
                 </button>
               </div>
@@ -156,4 +155,3 @@ export default function TimerButton({
     </>
   );
 }
-

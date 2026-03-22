@@ -2,19 +2,16 @@
 
 import React from 'react';
 import { useRouter } from 'next/navigation';
-import { Dumbbell, Plus, LogOut, Cloud, CloudOff, Loader2 } from 'lucide-react';
+import { LogOut } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
-import { hasPendingOperations } from '../utils/syncQueue';
 
 export default function Header({ 
   view, 
   selectedPlan, 
-  todayRecordsCount, 
-  totalExercises,
+  completedCount,
+  totalCount,
   isSyncing,
   isOnline,
-  onAddClick,
-  onViewChange
 }) {
   const { logout } = useAuth();
   const router = useRouter();
@@ -23,100 +20,50 @@ export default function Header({
     await logout();
     router.push('/login');
   };
-  const getTitle = () => {
-    if (view === 'plans') return 'Minhas Fichas';
-    if (view === 'workout') return selectedPlan?.name || 'Treinar';
-    return 'Histórico';
-  };
 
   return (
-    <>
-      <div className="bg-black/30 backdrop-blur-sm border-b border-purple-500/20 sticky top-0 z-10">
-        <div className="max-w-3xl mx-auto px-4 py-4">
-          <div className="flex items-center justify-between mb-4">
-            <div className="flex items-center gap-3">
-              <Dumbbell className="text-purple-400" size={32} />
-              <div>
-                <h1 className="text-2xl font-bold text-white">
-                  {getTitle()}
-                </h1>
-                {view === 'workout' && selectedPlan && (
-                  <p className="text-purple-300 text-sm">
-                    {todayRecordsCount}/{totalExercises} exercícios concluídos hoje
-                  </p>
-                )}
-              </div>
-            </div>
-            <div className="flex gap-2 items-center">
-              {/* Indicador de sincronização */}
-              <div className="flex items-center gap-2">
-                {isSyncing ? (
-                  <div className="flex items-center gap-1 text-yellow-400" title="Sincronizando...">
-                    <Loader2 size={18} className="animate-spin" />
-                  </div>
-                ) : !isOnline ? (
-                  <div className="flex items-center gap-1 text-orange-400" title="Modo offline - alterações serão sincronizadas quando voltar online">
-                    <CloudOff size={18} />
-                  </div>
-                ) : hasPendingOperations() ? (
-                  <div className="flex items-center gap-1 text-blue-400" title="Há alterações pendentes para sincronizar">
-                    <Cloud size={18} />
-                  </div>
-                ) : (
-                  <div className="flex items-center gap-1 text-green-400" title="Tudo sincronizado">
-                    <Cloud size={18} />
-                  </div>
-                )}
-              </div>
-              
-              {view === 'plans' && (
-                <button
-                  onClick={onAddClick}
-                  className="bg-purple-600 hover:bg-purple-700 text-white rounded-full p-3 shadow-lg transition-all hover:scale-105"
-                >
-                  <Plus size={24} />
-                </button>
-              )}
-              <button
-                onClick={handleLogout}
-                className="bg-red-600 hover:bg-red-700 text-white rounded-full p-3 shadow-lg transition-all hover:scale-105"
-                title="Sair"
-              >
-                <LogOut size={20} />
-              </button>
-            </div>
-          </div>
+    <header className="sticky top-0 z-30 flex items-center justify-between px-5 py-3 border-b border-purple-500/10"
+      style={{ background: 'rgba(8, 6, 15, 0.85)', backdropFilter: 'blur(12px)' }}>
 
-        {/* Tabs */}
-        <div className="flex gap-2">
-          <button
-            onClick={() => onViewChange('plans')}
-            className={`flex-1 py-2 px-4 rounded-lg font-medium transition-colors ${
-              view === 'plans' ? 'bg-purple-600 text-white' : 'bg-white/10 text-purple-300 hover:bg-white/20'
-            }`}
-          >
-            Fichas
-          </button>
-          <button
-            onClick={() => onViewChange('workout')}
-            disabled={!selectedPlan}
-            className={`flex-1 py-2 px-4 rounded-lg font-medium transition-colors ${
-              view === 'workout' ? 'bg-purple-600 text-white' : 'bg-white/10 text-purple-300 hover:bg-white/20 disabled:opacity-50'
-            }`}
-          >
-            Treinar
-          </button>
-          <button
-            onClick={() => onViewChange('history')}
-            className={`flex-1 py-2 px-4 rounded-lg font-medium transition-colors ${
-              view === 'history' ? 'bg-purple-600 text-white' : 'bg-white/10 text-purple-300 hover:bg-white/20'
-            }`}
-          >
-            Histórico
-          </button>
-        </div>
-        </div>
+      {/* Título dinâmico da aba ativa */}
+      <div>
+        {view === 'workout' && selectedPlan && (
+          <p className="text-[10px] text-purple-400/60 tracking-widest uppercase font-medium mb-0.5">
+            treinando
+          </p>
+        )}
+        <h1 className="text-[19px] font-bold text-white tracking-tight leading-none">
+          {view === 'plans' && 'Fichas'}
+          {view === 'workout' && (selectedPlan?.name ?? 'Treinar')}
+          {view === 'history' && 'Histórico'}
+        </h1>
       </div>
-    </>
+
+      {/* Ações à direita */}
+      <div className="flex items-center gap-2">
+        {/* Badge de progresso — só na aba Treinar */}
+        {view === 'workout' && selectedPlan && (
+          <span className="text-[11px] font-semibold text-purple-300 bg-purple-500/15 border border-purple-500/25 px-3 py-1 rounded-full">
+            {completedCount}/{totalCount} feitos
+          </span>
+        )}
+
+        {/* Indicador de sync */}
+        <div className={`w-2 h-2 rounded-full ${
+          !isOnline ? 'bg-orange-400' :
+          isSyncing ? 'bg-yellow-400 animate-pulse' :
+          'bg-green-400'
+        }`} />
+
+        {/* Botão de logout */}
+        <button
+          onClick={handleLogout}
+          className="w-8 h-8 rounded-full flex items-center justify-center border border-purple-500/25 bg-purple-500/15 active:scale-95 transition-transform"
+          title="Sair"
+        >
+          <LogOut size={13} className="text-purple-300" />
+        </button>
+      </div>
+    </header>
   );
 }

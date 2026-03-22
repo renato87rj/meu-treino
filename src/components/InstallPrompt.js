@@ -46,33 +46,41 @@ export default function InstallPrompt() {
   if (!showInstallPrompt) return null;
 
   return (
-    <div className="fixed bottom-0 left-0 right-0 z-50 p-4 animate-slide-up">
-      <div className="max-w-md mx-auto bg-gradient-to-r from-purple-600 to-purple-800 rounded-2xl shadow-2xl p-4 border-2 border-purple-400/50">
+    <div className="fixed bottom-[80px] left-4 right-4 z-50 animate-slide-up">
+      <div className="max-w-md mx-auto rounded-[20px] p-4"
+           style={{
+             background: 'rgba(15, 10, 30, 0.96)',
+             border: '0.5px solid rgba(139, 92, 246, 0.3)',
+             backdropFilter: 'blur(20px)',
+           }}>
         <div className="flex items-start gap-3">
-          <div className="bg-white/20 p-2 rounded-lg">
-            <Download className="text-white" size={24} />
+          <div className="w-10 h-10 rounded-[12px] flex items-center justify-center flex-shrink-0
+                          bg-purple-500/20 border border-purple-500/25">
+            <Download className="text-purple-400" size={18} />
           </div>
           
           <div className="flex-1">
-            <h3 className="text-white font-bold text-lg mb-1">
+            <h3 className="text-[14px] font-bold text-white mb-0.5">
               Instalar App
             </h3>
-            <p className="text-purple-100 text-sm mb-3">
+            <p className="text-[12px] text-[#7c6f9e] mb-3">
               Adicione à tela inicial para acesso rápido e uso offline!
             </p>
             
             <div className="flex gap-2">
               <button
                 onClick={handleInstall}
-                className="flex-1 bg-white text-purple-700 font-semibold py-2 px-4 rounded-lg hover:bg-purple-50 transition-colors"
+                className="flex-1 bg-purple-600 text-white font-semibold text-[13px]
+                           py-2.5 rounded-[12px] active:scale-[0.98] transition-transform"
               >
                 Instalar
               </button>
               <button
                 onClick={handleDismiss}
-                className="bg-white/20 text-white p-2 rounded-lg hover:bg-white/30 transition-colors"
+                className="w-10 h-10 rounded-[12px] flex items-center justify-center
+                           bg-white/[0.05] border border-purple-500/15 active:scale-95 transition-transform"
               >
-                <X size={20} />
+                <X size={15} className="text-[#7c6f9e]" />
               </button>
             </div>
           </div>

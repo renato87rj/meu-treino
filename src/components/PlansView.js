@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { ClipboardList, ChevronRight, Copy, Trash2, ChevronDown, ChevronUp, Edit2, Save, X, Plus, Dumbbell, MoreVertical } from 'lucide-react';
+import { ClipboardList, Copy, Trash2, ChevronUp, ChevronDown, Edit2, Save, X, Plus, Dumbbell, MoreVertical } from 'lucide-react';
 
 export default function PlansView({ 
   workoutPlans, 
@@ -14,7 +14,8 @@ export default function PlansView({
   onEditExercise,
   onDeleteExercise,
   onDuplicateExercise,
-  onMoveExercise
+  onMoveExercise,
+  onAddPlan
 }) {
   const [newPlanName, setNewPlanName] = useState('');
   const [expandedPlan, setExpandedPlan] = useState(null);
@@ -35,10 +36,8 @@ export default function PlansView({
   // Detectar quando uma nova ficha é criada e expandir automaticamente se tiver 0 exercícios
   useEffect(() => {
     if (workoutPlans.length > previousPlansCount.current) {
-      // Nova ficha foi adicionada
       const newestPlan = workoutPlans[workoutPlans.length - 1];
       if (newestPlan.exercises.length === 0) {
-        // Expandir a ficha e mostrar o formulário
         setExpandedPlan(newestPlan.id);
         setShowAddExerciseForm(newestPlan.id);
       }
@@ -54,13 +53,10 @@ export default function PlansView({
 
   const togglePlan = (planId) => {
     if (expandedPlan === planId) {
-      // Está fechando a ficha
       setExpandedPlan(null);
       setShowAddExerciseForm(null);
     } else {
-      // Está abrindo a ficha
       setExpandedPlan(planId);
-      // Se a ficha não tem exercícios, mostrar o formulário automaticamente
       const plan = workoutPlans.find(p => p.id === planId);
       if (plan && plan.exercises.length === 0) {
         setShowAddExerciseForm(planId);
@@ -113,7 +109,6 @@ export default function PlansView({
     };
 
     if (openMenuId !== null) {
-      // Pequeno delay para não fechar imediatamente ao abrir
       setTimeout(() => {
         document.addEventListener('mousedown', handleClickOutside);
         document.addEventListener('touchstart', handleClickOutside);
@@ -135,45 +130,59 @@ export default function PlansView({
     setOpenMenuId(null);
     if (action === 'edit') {
       const plan = workoutPlans.find(p => p.id === planId);
-      if (plan) {
-        startEditingPlanName(plan);
-      }
+      if (plan) startEditingPlanName(plan);
     } else if (action === 'duplicate') {
       const plan = workoutPlans.find(p => p.id === planId);
-      if (plan) {
-        onDuplicatePlan(plan);
-      }
+      if (plan) onDuplicatePlan(plan);
     } else if (action === 'delete') {
       onDeletePlan(planId);
     }
   };
 
   return (
-    <div>
-      {/* Formulário de Nova Ficha */}
+    <div className="pt-4">
+      {/* Modal de Nova Ficha */}
       {showAddPlan && (
-        <div className="bg-white/10 backdrop-blur-md rounded-2xl p-6 mb-6 border border-purple-500/20 shadow-xl">
-          <h2 className="text-xl font-bold text-white mb-4">Nova Ficha de Treino</h2>
-          <input
-            type="text"
-            value={newPlanName}
-            onChange={(e) => setNewPlanName(e.target.value)}
-            placeholder="Ex: Treino A - Peito e Tríceps"
-            className="w-full px-4 py-3 bg-white/5 border border-purple-500/30 rounded-xl text-white placeholder-purple-300/50 focus:outline-none focus:border-purple-400 mb-4"
-          />
-          <div className="flex gap-3">
-            <button 
-              onClick={handleCreate} 
-              className="flex-1 bg-purple-600 hover:bg-purple-700 text-white font-semibold py-3 rounded-xl"
-            >
-              Criar
-            </button>
-            <button 
-              onClick={onCancelAdd} 
-              className="flex-1 bg-white/10 hover:bg-white/20 text-white font-semibold py-3 rounded-xl"
-            >
-              Cancelar
-            </button>
+        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center px-0 sm:px-4"
+             style={{ background: 'rgba(8, 6, 15, 0.75)', backdropFilter: 'blur(6px)' }}
+             onClick={onCancelAdd}>
+          <div
+            className="w-full sm:max-w-md rounded-t-[28px] sm:rounded-[24px] p-6 animate-slide-up"
+            style={{
+              background: 'rgba(15, 10, 30, 0.98)',
+              border: '0.5px solid rgba(139, 92, 246, 0.25)',
+              backdropFilter: 'blur(20px)',
+            }}
+            onClick={e => e.stopPropagation()}>
+            <div className="w-10 h-1 rounded-full bg-purple-500/30 mx-auto mb-5" />
+            <h2 className="text-[16px] font-bold text-white mb-4">Nova Ficha de Treino</h2>
+            <input
+              type="text"
+              value={newPlanName}
+              onChange={(e) => setNewPlanName(e.target.value)}
+              placeholder="Ex: Treino A - Peito e Tríceps"
+              className="w-full bg-white/[0.05] border border-purple-500/25 rounded-[12px]
+                         px-4 py-3 text-[14px] text-white placeholder:text-[#4a4568]
+                         focus:outline-none focus:border-purple-400/50
+                         transition-colors mb-4"
+              autoFocus
+            />
+            <div className="flex gap-3">
+              <button 
+                onClick={handleCreate} 
+                className="flex-1 bg-purple-600 text-white font-semibold text-[14px]
+                           py-3.5 rounded-[14px] active:scale-[0.98] transition-transform"
+              >
+                Criar
+              </button>
+              <button 
+                onClick={onCancelAdd} 
+                className="flex-1 bg-white/[0.05] border border-purple-500/15 text-[#7c6f9e] font-semibold text-[14px]
+                           py-3.5 rounded-[14px] active:scale-[0.98] transition-transform"
+              >
+                Cancelar
+              </button>
+            </div>
           </div>
         </div>
       )}
@@ -181,9 +190,17 @@ export default function PlansView({
       {/* Lista de Fichas */}
       {workoutPlans.length === 0 ? (
         <div className="text-center py-16">
-          <ClipboardList className="mx-auto text-purple-400/30 mb-4" size={64} />
-          <p className="text-purple-300/70 text-lg">Nenhuma ficha criada</p>
-          <p className="text-purple-400/50 text-sm mt-2">Clique no + para criar sua primeira ficha</p>
+          <ClipboardList className="mx-auto text-[#3a3060] mb-4" size={48} />
+          <p className="text-[#7c6f9e] text-[15px]">Nenhuma ficha criada</p>
+          <p className="text-[#4a4568] text-[12px] mt-2 mb-6">Crie sua primeira ficha para começar</p>
+          <button
+            onClick={onAddPlan}
+            className="mx-auto flex items-center justify-center gap-2 px-8 py-4 rounded-[16px]
+                       text-[14px] font-semibold text-white bg-purple-600
+                       active:scale-[0.98] transition-transform">
+            <Plus size={16} />
+            nova ficha
+          </button>
         </div>
       ) : (
         <div className="space-y-3">
@@ -191,169 +208,165 @@ export default function PlansView({
             const isExpanded = expandedPlan === plan.id;
             
             return (
-            <div
-              key={plan.id}
-                className="bg-white/10 backdrop-blur-md rounded-xl border border-purple-500/20 transition-all"
+              <div
+                key={plan.id}
+                className={`card p-4 mb-3 transition-all ${isExpanded ? 'border-purple-500/40' : ''}`}
+                style={isExpanded ? { borderColor: 'rgba(139, 92, 246, 0.4)' } : {}}
               >
-                {/* Cabeçalho da Ficha */}
-                <div className="p-4">
-                  <div className="flex items-start justify-between gap-3">
-                    <button 
-                      onClick={() => togglePlan(plan.id)}
-                      className="flex items-start pt-1 flex-shrink-0"
-                      disabled={editingPlanId === plan.id}
-                    >
-                      {isExpanded ? (
-                        <ChevronDown className="text-purple-400" size={20} />
-                      ) : (
-                        <ChevronRight className="text-purple-400" size={20} />
-                      )}
-                    </button>
-                    
-                    {editingPlanId === plan.id ? (
-                      <div className="flex-1 flex items-center gap-2 min-w-0">
-                        <input
-                          type="text"
-                          value={editingPlanName}
-                          onChange={(e) => setEditingPlanName(e.target.value)}
-                          className="flex-1 min-w-0 px-3 py-2 bg-white/5 border border-purple-500/30 rounded-lg text-white focus:outline-none focus:border-purple-400"
-                          autoFocus
-                        />
-                        <button
-                          onClick={handleSavePlanName}
-                          className="text-green-400 hover:bg-green-500/20 p-2 rounded-lg flex-shrink-0"
-                          title="Salvar"
-                        >
-                          <Save size={18} />
-                        </button>
-                        <button
-                          onClick={cancelEditingPlanName}
-                          className="text-red-400 hover:bg-red-500/20 p-2 rounded-lg flex-shrink-0"
-                          title="Cancelar"
-                        >
-                          <X size={18} />
-                        </button>
-                      </div>
-                    ) : (
-                      <>
-                        <div className="flex-1 min-w-0">
-                          <h3 className="text-white font-semibold text-base sm:text-lg mb-1 break-words line-clamp-2">{plan.name}</h3>
-                          <p className="text-purple-300 text-xs sm:text-sm">{plan.exercises.length} {plan.exercises.length === 1 ? 'exercício' : 'exercícios'}</p>
-                        </div>
-                        <div className="flex items-center gap-2 flex-shrink-0 relative">
-                          <button
-                            onClick={() => onSelectPlanForWorkout(plan)}
-                            className="bg-purple-600 hover:bg-purple-700 text-white px-3 sm:px-4 py-2 rounded-lg font-medium text-xs sm:text-sm whitespace-nowrap"
-                          >
-                            Treinar
-                          </button>
-                          
-                          {/* Menu de Contexto */}
-                          <div 
-                            className="relative" 
-                            ref={(el) => {
-                              if (el) menuRefs.current[plan.id] = el;
-                            }}
-                          >
-                            <button
-                              onClick={(e) => toggleMenu(plan.id, e)}
-                              className="text-purple-400 hover:bg-purple-500/20 p-2 rounded-lg transition-colors"
-                              title="Mais opções"
-                            >
-                              <MoreVertical size={18} />
-                            </button>
-                            
-                            {/* Dropdown Menu */}
-                            {openMenuId === plan.id && (
-                              <div className="absolute right-0 top-full mt-1 bg-slate-800 border border-purple-500/30 rounded-lg shadow-xl z-50 min-w-[160px] max-w-[200px] overflow-hidden backdrop-blur-md">
-                                <button
-                                  onClick={() => handleMenuAction(plan.id, 'edit')}
-                                  className="w-full px-4 py-3 text-left text-white hover:bg-purple-600/20 active:bg-purple-600/30 flex items-center gap-3 transition-colors"
-                                >
-                                  <Edit2 size={16} className="flex-shrink-0" />
-                                  <span className="text-sm">Editar nome</span>
-                                </button>
-                                <button
-                                  onClick={() => handleMenuAction(plan.id, 'duplicate')}
-                                  className="w-full px-4 py-3 text-left text-white hover:bg-purple-600/20 active:bg-purple-600/30 flex items-center gap-3 transition-colors"
-                                >
-                                  <Copy size={16} className="flex-shrink-0" />
-                                  <span className="text-sm">Duplicar</span>
-                                </button>
-                                <div className="border-t border-purple-500/20 my-1"></div>
-                                <button
-                                  onClick={() => handleMenuAction(plan.id, 'delete')}
-                                  className="w-full px-4 py-3 text-left text-red-400 hover:bg-red-500/20 active:bg-red-500/30 flex items-center gap-3 transition-colors"
-                                >
-                                  <Trash2 size={16} className="flex-shrink-0" />
-                                  <span className="text-sm">Deletar</span>
-                                </button>
-                              </div>
-                            )}
-                          </div>
-                        </div>
-                      </>
-                    )}
+                {/* Cabeçalho do card */}
+                <div className="flex items-center gap-3" onClick={() => togglePlan(plan.id)}>
+                  {/* Ícone da ficha */}
+                  <div className="w-10 h-10 rounded-[12px] flex items-center justify-center flex-shrink-0
+                                  bg-purple-500/20 border border-purple-500/25">
+                    <Dumbbell size={16} className="text-purple-400" />
                   </div>
+
+                  {/* Info */}
+                  {editingPlanId === plan.id ? (
+                    <div className="flex-1 flex items-center gap-2 min-w-0" onClick={e => e.stopPropagation()}>
+                      <input
+                        type="text"
+                        value={editingPlanName}
+                        onChange={(e) => setEditingPlanName(e.target.value)}
+                        className="flex-1 min-w-0 px-3 py-1.5 bg-white/[0.05] border border-purple-500/25 rounded-[10px] text-[14px] text-white focus:outline-none focus:border-purple-400/50"
+                        autoFocus
+                      />
+                      <button onClick={handleSavePlanName}
+                        className="w-7 h-7 rounded-full flex items-center justify-center bg-green-500/15 border border-green-500/25">
+                        <Save size={12} className="text-green-400" />
+                      </button>
+                      <button onClick={cancelEditingPlanName}
+                        className="w-7 h-7 rounded-full flex items-center justify-center bg-white/5 border border-purple-500/15">
+                        <X size={12} className="text-[#7c6f9e]" />
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="flex-1 min-w-0">
+                      <h3 className="text-[15px] font-semibold text-white tracking-tight truncate">
+                        {plan.name}
+                      </h3>
+                      <p className="text-[12px] text-[#7c6f9e] mt-0.5">
+                        {plan.exercises.length} exercício{plan.exercises.length !== 1 ? 's' : ''}
+                      </p>
+                    </div>
+                  )}
+
+                  {/* Ações */}
+                  {editingPlanId !== plan.id && (
+                    <div className="flex items-center gap-2 flex-shrink-0" onClick={e => e.stopPropagation()}>
+                      <button
+                        onClick={() => onSelectPlanForWorkout(plan)}
+                        className="text-[12px] font-semibold text-white bg-purple-600 px-3.5 py-1.5 rounded-full
+                                   active:scale-95 transition-transform">
+                        Treinar
+                      </button>
+                      <div className="relative"
+                        ref={(el) => { if (el) menuRefs.current[plan.id] = el; }}>
+                        <button
+                          onClick={(e) => toggleMenu(plan.id, e)}
+                          className="w-7 h-7 rounded-full flex items-center justify-center bg-white/5 border border-purple-500/15">
+                          <MoreVertical size={13} className="text-[#7c6f9e]" />
+                        </button>
+                        {openMenuId === plan.id && (
+                          <div className="absolute right-0 top-full mt-1 rounded-[14px] z-50 min-w-[160px] overflow-hidden"
+                               style={{ background: 'rgba(15, 10, 30, 0.98)', border: '0.5px solid rgba(139, 92, 246, 0.25)', backdropFilter: 'blur(20px)' }}>
+                            <button onClick={() => handleMenuAction(plan.id, 'edit')}
+                              className="w-full px-4 py-3 text-left text-white active:bg-purple-600/20 flex items-center gap-3 transition-colors">
+                              <Edit2 size={14} className="text-purple-400 flex-shrink-0" />
+                              <span className="text-[13px]">Editar nome</span>
+                            </button>
+                            <button onClick={() => handleMenuAction(plan.id, 'duplicate')}
+                              className="w-full px-4 py-3 text-left text-white active:bg-purple-600/20 flex items-center gap-3 transition-colors">
+                              <Copy size={14} className="text-purple-400 flex-shrink-0" />
+                              <span className="text-[13px]">Duplicar</span>
+                            </button>
+                            <div className="border-t border-purple-500/10 mx-2"></div>
+                            <button onClick={() => handleMenuAction(plan.id, 'delete')}
+                              className="w-full px-4 py-3 text-left text-red-400 active:bg-red-500/20 flex items-center gap-3 transition-colors">
+                              <Trash2 size={14} className="flex-shrink-0" />
+                              <span className="text-[13px]">Deletar</span>
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )}
                 </div>
 
-                {/* Lista de Exercícios (Expansível) */}
+                {/* Dots de progresso */}
+                {plan.exercises.length > 0 && !isExpanded && (
+                  <div className="flex gap-1.5 mt-3">
+                    {plan.exercises.map((ex) => (
+                      <div key={ex.id} className="w-2 h-2 rounded-full bg-[#2d1f55]" />
+                    ))}
+                  </div>
+                )}
+
+                {/* Lista expandida de exercícios */}
                 {isExpanded && (
-                  <div className="border-t border-purple-500/20 p-4 bg-white/5">
+                  <div className="mt-3 pt-3 border-t border-purple-500/10">
                     {/* Botão Adicionar Exercício */}
                     {!showAddExerciseForm && (
                       <button
                         onClick={() => setShowAddExerciseForm(plan.id)}
-                        className="w-full mb-4 bg-purple-600/20 hover:bg-purple-600/30 border border-purple-500/30 text-purple-200 px-4 py-3 rounded-xl font-medium flex items-center justify-center gap-2 transition-all"
-                      >
-                        <Plus size={20} />
-                        Adicionar Exercício
+                        className="w-full mb-3 flex items-center justify-center gap-2 py-2.5 rounded-[14px]
+                                   text-[12px] font-semibold text-purple-400
+                                   border border-dashed border-purple-500/30 bg-purple-500/[0.06]
+                                   active:bg-purple-500/10 transition-colors">
+                        <Plus size={13} />
+                        adicionar exercício
                       </button>
                     )}
 
                     {/* Formulário de Novo Exercício */}
                     {showAddExerciseForm === plan.id && (
-                      <div className="bg-white/10 rounded-xl p-4 mb-4 border border-purple-500/30">
-                        <h4 className="text-white font-semibold mb-3">Novo Exercício</h4>
-                        <div className="space-y-3">
+                      <div className="rounded-[14px] p-4 mb-3 border border-purple-500/[0.18]"
+                           style={{ background: 'rgba(255,255,255,0.04)' }}>
+                        <h4 className="text-[13px] font-semibold text-white mb-3">Novo Exercício</h4>
+                        <div className="space-y-2.5">
                           <input
                             type="text"
                             value={newExercise.name}
                             onChange={(e) => setNewExercise({...newExercise, name: e.target.value})}
                             placeholder="Nome do exercício"
-                            className="w-full px-4 py-2 bg-white/5 border border-purple-500/30 rounded-lg text-white placeholder-purple-300/50 focus:outline-none focus:border-purple-400"
+                            className="w-full bg-white/[0.05] border border-purple-500/25 rounded-[12px]
+                                       px-4 py-3 text-[14px] text-white placeholder:text-[#4a4568]
+                                       focus:outline-none focus:border-purple-400/50 transition-colors"
                           />
-                          <div className="grid grid-cols-3 gap-3">
+                          <div className="grid grid-cols-3 gap-2">
                             <input
-                              type="number"
-                              min="1"
+                              type="number" min="1"
                               value={newExercise.sets}
                               onChange={(e) => setNewExercise({...newExercise, sets: e.target.value})}
                               placeholder="Séries"
-                              className="px-4 py-2 bg-white/5 border border-purple-500/30 rounded-lg text-white placeholder-purple-300/50 focus:outline-none focus:border-purple-400"
+                              className="bg-white/[0.05] border border-purple-500/25 rounded-[12px]
+                                         px-3 py-3 text-[14px] text-white text-center placeholder:text-[#4a4568]
+                                         focus:outline-none focus:border-purple-400/50 transition-colors"
                             />
                             <input
                               type="text"
                               value={newExercise.reps}
                               onChange={(e) => setNewExercise({...newExercise, reps: e.target.value})}
-                              placeholder="Reps (ex: 12 ou 8-12)"
-                              className="px-4 py-2 bg-white/5 border border-purple-500/30 rounded-lg text-white placeholder-purple-300/50 focus:outline-none focus:border-purple-400"
+                              placeholder="Reps"
+                              className="bg-white/[0.05] border border-purple-500/25 rounded-[12px]
+                                         px-3 py-3 text-[14px] text-white text-center placeholder:text-[#4a4568]
+                                         focus:outline-none focus:border-purple-400/50 transition-colors"
                             />
                             <input
-                              type="number"
-                              min="0"
-                              step="0.5"
+                              type="number" min="0" step="0.5"
                               value={newExercise.weight}
                               onChange={(e) => setNewExercise({...newExercise, weight: e.target.value})}
-                              placeholder="Carga (opcional)"
-                              className="px-4 py-2 bg-white/5 border border-purple-500/30 rounded-lg text-white placeholder-purple-300/50 focus:outline-none focus:border-purple-400"
+                              placeholder="Carga"
+                              className="bg-white/[0.05] border border-purple-500/25 rounded-[12px]
+                                         px-3 py-3 text-[14px] text-white text-center placeholder:text-[#4a4568]
+                                         focus:outline-none focus:border-purple-400/50 transition-colors"
                             />
                           </div>
-                          <div className="flex gap-2">
+                          <div className="flex gap-2 pt-1">
                             <button 
                               onClick={() => handleAddExercise(plan.id)} 
-                              className="flex-1 bg-purple-600 hover:bg-purple-700 text-white font-semibold py-2 rounded-lg"
-                            >
+                              className="flex-1 bg-purple-600 text-white font-semibold text-[14px]
+                                         py-3 rounded-[14px] active:scale-[0.98] transition-transform">
                               Adicionar
                             </button>
                             <button 
@@ -361,8 +374,8 @@ export default function PlansView({
                                 setShowAddExerciseForm(null);
                                 setNewExercise({ name: '', sets: '', reps: '', weight: '' });
                               }} 
-                              className="flex-1 bg-white/10 hover:bg-white/20 text-white font-semibold py-2 rounded-lg"
-                            >
+                              className="flex-1 bg-white/[0.05] border border-purple-500/15 text-[#7c6f9e] font-semibold text-[14px]
+                                         py-3 rounded-[14px] active:scale-[0.98] transition-transform">
                               Cancelar
                             </button>
                           </div>
@@ -373,12 +386,12 @@ export default function PlansView({
                     {/* Lista de Exercícios */}
                     {plan.exercises.length === 0 ? (
                       <div className="text-center py-8">
-                        <Dumbbell className="mx-auto text-purple-400/30 mb-2" size={48} />
-                        <p className="text-purple-300/70">Nenhum exercício</p>
-                        <p className="text-purple-400/50 text-sm mt-1">Adicione exercícios para começar</p>
+                        <Dumbbell className="mx-auto text-[#3a3060] mb-2" size={32} />
+                        <p className="text-[#7c6f9e] text-[13px]">Nenhum exercício</p>
+                        <p className="text-[#4a4568] text-[11px] mt-1">Adicione exercícios para começar</p>
                       </div>
                     ) : (
-                      <div className="space-y-2">
+                      <div className="space-y-0">
                         {plan.exercises.map((exercise, index) => {
                           const isEditing = editingExercise?.id === exercise.id;
                           const isFirst = index === 0;
@@ -387,15 +400,16 @@ export default function PlansView({
                           return (
                             <div
                               key={exercise.id}
-                              className="bg-white/10 rounded-lg p-3 border border-purple-500/20"
+                              className="flex items-center gap-2 py-2 border-b border-purple-500/[0.07] last:border-0"
                             >
                               {isEditing ? (
-                                <div className="space-y-2">
+                                <div className="flex-1 space-y-2 py-1">
                                   <input
                                     type="text"
                                     value={editingExercise.name}
                                     onChange={(e) => setEditingExercise({...editingExercise, name: e.target.value})}
-                                    className="w-full px-3 py-2 bg-white/5 border border-purple-500/30 rounded-lg text-white"
+                                    className="w-full bg-white/[0.05] border border-purple-500/25 rounded-[10px]
+                                               px-3 py-2 text-[13px] text-white focus:outline-none focus:border-purple-400/50"
                                   />
                                   <div className="grid grid-cols-3 gap-2">
                                     <input
@@ -403,92 +417,78 @@ export default function PlansView({
                                       value={editingExercise.sets}
                                       onChange={(e) => setEditingExercise({...editingExercise, sets: e.target.value})}
                                       placeholder="Séries"
-                                      className="px-3 py-2 bg-white/5 border border-purple-500/30 rounded-lg text-white"
+                                      className="bg-white/[0.05] border border-purple-500/25 rounded-[10px]
+                                                 px-3 py-2 text-[13px] text-white text-center focus:outline-none focus:border-purple-400/50"
                                     />
                                     <input
                                       type="text"
                                       value={editingExercise.reps}
                                       onChange={(e) => setEditingExercise({...editingExercise, reps: e.target.value})}
-                                      placeholder="Reps (ex: 12 ou 8-12)"
-                                      className="px-3 py-2 bg-white/5 border border-purple-500/30 rounded-lg text-white"
+                                      placeholder="Reps"
+                                      className="bg-white/[0.05] border border-purple-500/25 rounded-[10px]
+                                                 px-3 py-2 text-[13px] text-white text-center focus:outline-none focus:border-purple-400/50"
                                     />
                                     <input
-                                      type="number"
-                                      min="0"
-                                      step="0.5"
+                                      type="number" min="0" step="0.5"
                                       value={editingExercise.weight || ''}
                                       onChange={(e) => setEditingExercise({...editingExercise, weight: e.target.value})}
-                                      placeholder="Carga (opcional)"
-                                      className="px-3 py-2 bg-white/5 border border-purple-500/30 rounded-lg text-white placeholder-purple-300/50"
+                                      placeholder="Carga"
+                                      className="bg-white/[0.05] border border-purple-500/25 rounded-[10px]
+                                                 px-3 py-2 text-[13px] text-white text-center placeholder:text-[#4a4568] focus:outline-none focus:border-purple-400/50"
                                     />
                                   </div>
                                   <div className="flex gap-2">
                                     <button 
                                       onClick={() => handleSaveEdit(plan.id)} 
-                                      className="flex-1 bg-green-600 text-white py-2 rounded-lg flex items-center justify-center gap-1"
-                                    >
-                                      <Save size={14} /> Salvar
+                                      className="flex-1 bg-purple-600 text-white text-[12px] font-semibold py-2 rounded-[10px] active:scale-[0.98] transition-transform flex items-center justify-center gap-1">
+                                      <Save size={12} /> Salvar
                                     </button>
                                     <button 
                                       onClick={() => setEditingExercise(null)} 
-                                      className="flex-1 bg-white/10 text-white py-2 rounded-lg flex items-center justify-center gap-1"
-                                    >
-                                      <X size={14} /> Cancelar
+                                      className="flex-1 bg-white/[0.05] border border-purple-500/15 text-[#7c6f9e] text-[12px] font-semibold py-2 rounded-[10px] active:scale-[0.98] transition-transform flex items-center justify-center gap-1">
+                                      <X size={12} /> Cancelar
                                     </button>
                                   </div>
                                 </div>
                               ) : (
-                                <div className="flex items-center gap-2">
+                                <>
                                   {/* Botões de reordenação */}
-                                  <div className="flex flex-col gap-1">
+                                  <div className="flex flex-col gap-0.5 flex-shrink-0">
                                     <button
                                       onClick={() => onMoveExercise(plan.id, exercise.id, 'up')}
                                       disabled={isFirst}
-                                      className={`p-1 rounded ${isFirst ? 'text-purple-400/30 cursor-not-allowed' : 'text-purple-400 hover:bg-purple-500/20'}`}
-                                    >
-                                      <ChevronUp size={14} />
+                                      className={`p-0.5 rounded ${isFirst ? 'text-[#2d1f55] cursor-not-allowed' : 'text-purple-400 active:bg-purple-500/20'}`}>
+                                      <ChevronUp size={12} />
                                     </button>
                                     <button
                                       onClick={() => onMoveExercise(plan.id, exercise.id, 'down')}
                                       disabled={isLast}
-                                      className={`p-1 rounded ${isLast ? 'text-purple-400/30 cursor-not-allowed' : 'text-purple-400 hover:bg-purple-500/20'}`}
-                                    >
-                                      <ChevronDown size={14} />
+                                      className={`p-0.5 rounded ${isLast ? 'text-[#2d1f55] cursor-not-allowed' : 'text-purple-400 active:bg-purple-500/20'}`}>
+                                      <ChevronDown size={12} />
                                     </button>
                                   </div>
 
-                                  <div className="flex-1">
-                                    <h4 className="text-white font-medium">{exercise.name}</h4>
-                                    <p className="text-purple-300 text-xs">
-                                      {exercise.sets} x {exercise.reps}
-                                      {exercise.weight && ` - ${exercise.weight}kg`}
-                                    </p>
-                                  </div>
+                                  <span className="text-[11px] text-[#4a4568] w-5 flex-shrink-0">{index + 1}</span>
+                                  <span className="text-[13px] text-purple-200 flex-1 truncate">{exercise.name}</span>
+                                  <span className="text-[11px] text-[#4a4568] flex-shrink-0">
+                                    {exercise.sets}×{exercise.reps}{exercise.weight ? ` · ${exercise.weight}kg` : ''}
+                                  </span>
 
-                                  <div className="flex gap-1">
-                                    <button
-                                      onClick={() => onDuplicateExercise(plan.id, exercise)}
-                                      className="text-purple-400 hover:bg-purple-500/20 p-2 rounded-lg"
-                                      title="Duplicar"
-                                    >
-                                      <Copy size={14} />
+                                  <div className="flex gap-0.5 flex-shrink-0">
+                                    <button onClick={() => onDuplicateExercise(plan.id, exercise)}
+                                      className="text-purple-400 active:bg-purple-500/20 p-1.5 rounded-full" title="Duplicar">
+                                      <Copy size={12} />
                                     </button>
-                                    <button
-                                      onClick={() => setEditingExercise(exercise)}
-                                      className="text-purple-400 hover:bg-purple-500/20 p-2 rounded-lg"
-                                      title="Editar"
-                                    >
-                                      <Edit2 size={14} />
+                                    <button onClick={() => setEditingExercise(exercise)}
+                                      className="text-purple-400 active:bg-purple-500/20 p-1.5 rounded-full" title="Editar">
+                                      <Edit2 size={12} />
                                     </button>
-                                    <button
-                                      onClick={() => onDeleteExercise(plan.id, exercise.id)}
-                                      className="text-red-400 hover:bg-red-500/20 p-2 rounded-lg"
-                                      title="Remover"
-                                    >
-                                      <Trash2 size={14} />
+                                    <button onClick={() => onDeleteExercise(plan.id, exercise.id)}
+                                      className="text-red-400 active:bg-red-500/20 p-1.5 rounded-full" title="Remover">
+                                      <Trash2 size={12} />
                                     </button>
                                   </div>
-                                </div>
+                                </>
                               )}
                             </div>
                           );
@@ -500,9 +500,18 @@ export default function PlansView({
               </div>
             );
           })}
+
+          {/* Botão de nova ficha — CTA no rodapé da lista */}
+          <button
+            onClick={onAddPlan}
+            className="w-full flex items-center justify-center gap-2 mt-2 py-4 rounded-[16px]
+                       text-[14px] font-semibold text-white bg-purple-600
+                       active:scale-[0.98] transition-transform">
+            <Plus size={16} />
+            nova ficha
+          </button>
         </div>
       )}
     </div>
   );
 }
-

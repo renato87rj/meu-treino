@@ -1,33 +1,91 @@
+:root {
+  /* Paleta base */
+  --bg-base: #08060f;
+  --bg-surface: rgba(255, 255, 255, 0.05);
+  --bg-surface-hover: rgba(255, 255, 255, 0.08);
+  --bg-elevated: rgba(255, 255, 255, 0.08);
+
+  /* Roxo — cor de destaque */
+  --purple-primary: #7c3aed;
+  --purple-mid: #9333ea;
+  --purple-light: #a78bfa;
+  --purple-muted: rgba(124, 58, 237, 0.15);
+  --purple-border: rgba(139, 92, 246, 0.2);
+  --purple-border-strong: rgba(139, 92, 246, 0.4);
+
+  /* Estados semânticos */
+  --green-text: #4ade80;
+  --green-bg: rgba(74, 222, 128, 0.08);
+  --green-border: rgba(74, 222, 128, 0.25);
+  --yellow-text: #fde047;
+  --yellow-bg: rgba(234, 179, 8, 0.1);
+  --yellow-border: rgba(234, 179, 8, 0.3);
+  --red-text: #f87171;
+
+  /* Tipografia */
+  --text-primary: #ffffff;
+  --text-secondary: #a78bfa;
+  --text-muted: #7c6f9e;
+  --text-dim: #4a4568;
+
+  /* Layout */
+  --radius-sm: 10px;
+  --radius-md: 14px;
+  --radius-lg: 18px;
+  --radius-xl: 22px;
+  --radius-full: 999px;
+
+  /* Timer */
+  --timer-bg: rgba(124, 58, 237, 0.92);
+  --timer-border: rgba(167, 139, 250, 0.35);
+}
+
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
-
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
-}
-
-html, body {
-  overflow-x: hidden;
-  max-width: 100vw;
+  --color-background: var(--bg-base);
+  --color-foreground: var(--text-primary);
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background-color: var(--bg-base);
+  color: var(--text-primary);
+  font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', system-ui, sans-serif;
+  overflow-x: hidden;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Scrollbar invisível globalmente */
+* {
+  scrollbar-width: none;
+}
+*::-webkit-scrollbar {
+  display: none;
+}
+
+/* Padrão de pontos sutil no fundo */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background-image: radial-gradient(circle, rgba(139, 92, 246, 0.06) 1px, transparent 1px);
+  background-size: 28px 28px;
+  pointer-events: none;
+  z-index: 0;
+}
+
+.card {
+  background: rgba(255, 255, 255, 0.05);
+  border: 0.5px solid rgba(139, 92, 246, 0.18);
+  border-radius: 18px;
+  backdrop-filter: blur(8px);
+}
+
+.card-elevated {
+  background: rgba(124, 58, 237, 0.1);
+  border: 0.5px solid rgba(124, 58, 237, 0.35);
+  border-radius: 20px;
+  backdrop-filter: blur(10px);
 }
 
 @keyframes slide-up {

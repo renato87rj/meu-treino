@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 
 import InstallPrompt from '../components/InstallPrompt';
 import Header from '../components/Header';
+import TabBar from '../components/TabBar';
 import RestTimer from '../components/RestTimer';
 import TimerButton from '../components/TimerButton';
 import PlansView from '../components/PlansView';
@@ -77,7 +78,7 @@ export default function WorkoutTracker() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 flex items-center justify-center">
+      <div className="min-h-screen bg-[#08060f] relative flex items-center justify-center">
         <div className="text-white text-xl">Carregando...</div>
       </div>
     );
@@ -118,47 +119,45 @@ export default function WorkoutTracker() {
   const completedTodayNames = new Set(todayRecords.map(r => r.exerciseName));
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 overflow-x-hidden">
+    <div className="min-h-screen bg-[#08060f] relative overflow-x-hidden">
       <InstallPrompt />
       
-      {/* Header com navegação */}
+      {/* Header */}
       <Header
         view={view}
         selectedPlan={selectedPlan}
-        todayRecordsCount={todayRecords.length}
-        totalExercises={selectedPlan?.exercises.length || 0}
+        completedCount={todayRecords.length}
+        totalCount={selectedPlan?.exercises.length || 0}
         isSyncing={isSyncing}
         isOnline={isOnline}
-        onAddClick={handleAddClick}
-        onViewChange={handleViewChange}
       />
 
-      <div className="max-w-3xl mx-auto px-4 py-6">
-        {/* Timer de Descanso Flutuante */}
-        <RestTimer
-          timerActive={timerActive}
-          timerSeconds={timerSeconds}
-          timerRunning={timerRunning}
-          timerMinimized={timerMinimized}
-          timerFinished={timerFinished}
-          formatTime={formatTime}
-          toggleTimer={toggleTimer}
-          resetTimer={resetTimer}
-          closeTimer={closeTimer}
-          toggleMinimize={toggleMinimize}
-          dismissFinished={dismissFinished}
-          setCustomTime={setCustomTime}
+      {/* Timer de Descanso Flutuante */}
+      <RestTimer
+        timerActive={timerActive}
+        timerSeconds={timerSeconds}
+        timerRunning={timerRunning}
+        timerMinimized={timerMinimized}
+        timerFinished={timerFinished}
+        formatTime={formatTime}
+        toggleTimer={toggleTimer}
+        resetTimer={resetTimer}
+        closeTimer={closeTimer}
+        toggleMinimize={toggleMinimize}
+        dismissFinished={dismissFinished}
+        setCustomTime={setCustomTime}
+      />
+
+      {/* Botão para Iniciar Timer - só aparece quando timer não está ativo */}
+      {view === 'workout' && !timerActive && (
+        <TimerButton
+          onStartTimer={startRestTimer}
+          defaultTime={defaultTime}
+          onSetDefaultTime={setDefaultRestTime}
         />
+      )}
 
-        {/* Botão para Iniciar Timer - só aparece quando timer não está ativo */}
-        {view === 'workout' && !timerActive && (
-          <TimerButton
-            onStartTimer={startRestTimer}
-            defaultTime={defaultTime}
-            onSetDefaultTime={setDefaultRestTime}
-          />
-        )}
-
+      <main className="pb-24 pt-0 max-w-3xl mx-auto px-4">
         {/* View: Lista de Fichas */}
         {view === 'plans' && (
           <PlansView
@@ -175,6 +174,7 @@ export default function WorkoutTracker() {
             onDeleteExercise={deleteExercise}
             onDuplicateExercise={duplicateExercise}
             onMoveExercise={moveExercise}
+            onAddPlan={() => setShowAddPlan(true)}
           />
         )}
 
@@ -205,7 +205,9 @@ export default function WorkoutTracker() {
             workoutPlans={workoutPlans}
           />
         )}
-      </div>
+      </main>
+
+      <TabBar view={view} onChangeView={handleViewChange} />
     </div>
   );
 }
