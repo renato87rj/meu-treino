@@ -39,7 +39,11 @@ export default function WorkoutTracker() {
     deleteExercise,
     duplicateExercise,
     moveExercise,
-    recordWorkout,
+    setProgress,
+    updateExerciseWeight,
+    confirmSet,
+    completeExercise,
+    undoExercise,
     getTodayRecords,
     groupHistoryByDate
   } = useWorkoutData(user?.uid || null);
@@ -100,11 +104,6 @@ export default function WorkoutTracker() {
     } else if (view === 'workout') {
       setShowAddExercise(!showAddExercise);
     }
-  };
-
-  // Registrar treino
-  const handleRecordWorkout = (plan, exercise) => {
-    return recordWorkout(plan, exercise);
   };
 
   // Obter registros de hoje
@@ -177,7 +176,11 @@ export default function WorkoutTracker() {
             selectedPlan={selectedPlan}
             completedToday={completedToday}
             todayRecords={todayRecords}
-            onRecordWorkout={handleRecordWorkout}
+            setProgress={setProgress}
+            onConfirmSet={confirmSet}
+            onUpdateWeight={updateExerciseWeight}
+            onCompleteExercise={completeExercise}
+            onUndoExercise={undoExercise}
           />
         )}
 

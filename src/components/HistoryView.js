@@ -71,18 +71,39 @@ export default function HistoryView({ history, groupHistoryByDate }) {
                             key={record.id} 
                             className="bg-white/10 backdrop-blur-md rounded-xl p-4 border border-purple-500/20"
                           >
-                            <h4 className="text-white font-semibold mb-3">{record.exerciseName}</h4>
-                            <div className="flex items-center justify-between mt-2">
-                              <div className="flex items-center gap-2">
-                                <p className="text-purple-400/70 text-sm">Planejado:</p>
-                                <p className="text-purple-300 text-sm">
-                                  {record.plannedSets} x {record.plannedReps}
-                                </p>
-                              </div>
+                            <div className="flex items-center justify-between mb-2">
+                              <h4 className="text-white font-semibold">{record.exerciseName}</h4>
                               <span className="bg-green-500/20 text-green-400 px-3 py-1 rounded-lg text-sm font-medium">
                                 ✓ Feito
                               </span>
                             </div>
+
+                            {/* Carga utilizada */}
+                            {record.weight != null && (
+                              <p className="text-purple-300 text-sm mb-2">
+                                Carga: <span className="text-white font-medium">{record.weight} kg</span>
+                              </p>
+                            )}
+
+                            {/* Séries realizadas */}
+                            {record.completedSets && record.completedSets.length > 0 ? (
+                              <div className="flex flex-wrap gap-1.5 mb-2">
+                                {record.completedSets.map((set, i) => (
+                                  <span
+                                    key={i}
+                                    className="bg-green-500/10 border border-green-500/20 text-green-400 text-xs px-2 py-1 rounded-md"
+                                  >
+                                    S{i + 1}: {set?.reps != null ? `${set.reps} reps` : '—'}
+                                  </span>
+                                ))}
+                              </div>
+                            ) : null}
+
+                            {/* Planejado */}
+                            <p className="text-purple-400/50 text-xs">
+                              Planejado: {record.plannedSets} x {record.plannedReps}
+                              {record.plannedWeight ? ` · ${record.plannedWeight} kg` : ''}
+                            </p>
                           </div>
                         ))}
                       </div>

@@ -11,7 +11,11 @@ export default function useWorkoutData(userId = null) {
   const [history, setHistory] = useState([]);
   const [isOnline, setIsOnline] = useState(typeof navigator !== 'undefined' ? navigator.onLine : true);
   const [isInitialized, setIsInitialized] = useState(false);
-  
+
+  // Progresso parcial das séries durante o treino
+  // Formato: { [exerciseId]: { weight: number, sets: [{ reps: number }, ...] } }
+  const [setProgress, setSetProgress] = useState({});
+
   const isSyncingRef = useRef(false);
   const lastLocalUpdateRef = useRef(null);
   const ignoreNextUpdateRef = useRef({ plans: false, history: false });
@@ -53,7 +57,8 @@ export default function useWorkoutData(userId = null) {
 
     const savedPlans = localStorage.getItem('workoutPlans');
     const savedHistory = localStorage.getItem('workoutHistory');
-    
+    const savedSetProgress = localStorage.getItem('workoutSetProgress');
+
     if (savedPlans) {
       try {
         setWorkoutPlans(JSON.parse(savedPlans));
@@ -66,6 +71,17 @@ export default function useWorkoutData(userId = null) {
         setHistory(JSON.parse(savedHistory));
       } catch (error) {
         console.error('Erro ao carregar histórico do localStorage:', error);
+      }
+    }
+    if (savedSetProgress) {
+      try {
+        const parsed = JSON.parse(savedSetProgress);
+        // Só restaura se for do dia de hoje
+        if (parsed.date === new Date().toLocaleDateString('pt-BR')) {
+          setSetProgress(parsed.progress || {});
+        }
+      } catch (error) {
+        console.error('Erro ao carregar progresso de séries do localStorage:', error);
       }
     }
 
@@ -85,45 +101,50 @@ export default function useWorkoutData(userId = null) {
     lastLocalUpdateRef.current = new Date().toISOString();
   }, [history, isInitialized]);
 
+  // Persistir progresso de séries no localStorage (com data para invalidar no dia seguinte)
+  useEffect(() => {
+    if (!isInitialized) return;
+    localStorage.setItem('workoutSetProgress', JSON.stringify({
+      date: new Date().toLocaleDateString('pt-BR'),
+      progress: setProgress
+    }));
+  }, [setProgress, isInitialized]);
+
   // Configurar listeners em tempo real quando usuário estiver logado
   useEffect(() => {
     if (!userId || !isInitialized) return;
 
     const handlePlansUpdate = (plans) => {
       if (plans && Array.isArray(plans)) {
-        // Ignorar atualização se foi uma mudança local recente
         if (ignoreNextUpdateRef.current.plans) {
           ignoreNextUpdateRef.current.plans = false;
           return;
         }
-        
-        // Converter timestamps do Firestore para formato compatível
+
         const normalizedPlans = plans.map(plan => ({
           ...plan,
           createdAt: plan.createdAt?.toDate?.()?.toISOString() || plan.createdAt,
           updatedAt: plan.updatedAt?.toDate?.()?.toISOString() || plan.updatedAt
         }));
-        
+
         setWorkoutPlans(normalizedPlans);
       }
     };
 
     const handleHistoryUpdate = (historyData) => {
       if (historyData && Array.isArray(historyData)) {
-        // Ignorar atualização se foi uma mudança local recente
         if (ignoreNextUpdateRef.current.history) {
           ignoreNextUpdateRef.current.history = false;
           return;
         }
-        
-        // Converter timestamps do Firestore
+
         const normalizedHistory = historyData.map(record => ({
           ...record,
           date: record.date?.toDate?.()?.toISOString() || record.date,
           createdAt: record.createdAt?.toDate?.()?.toISOString() || record.createdAt,
           updatedAt: record.updatedAt?.toDate?.()?.toISOString() || record.updatedAt
         }));
-        
+
         setHistory(normalizedHistory);
       }
     };
@@ -141,7 +162,7 @@ export default function useWorkoutData(userId = null) {
 
     const migrateData = async () => {
       const isFirstSync = await checkIfFirstSync();
-      
+
       if (isFirstSync && workoutPlans.length > 0 || history.length > 0) {
         isSyncingRef.current = true;
         await syncLocalToFirestore(workoutPlans, history);
@@ -175,8 +196,7 @@ export default function useWorkoutData(userId = null) {
     };
 
     setWorkoutPlans(prev => [...prev, plan]);
-    
-    // Sincronizar com Firebase
+
     if (userId) {
       ignoreNextUpdateRef.current.plans = true;
       syncPlan(plan);
@@ -192,15 +212,15 @@ export default function useWorkoutData(userId = null) {
       id: Date.now(),
       name: `${plan.name} (cópia)`,
       exercises: plan.exercises.map(ex => ({
-        ...ex, 
+        ...ex,
         id: Date.now() + Math.random()
       })),
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString()
     };
-    
+
     setWorkoutPlans(prev => [...prev, newPlan]);
-    
+
     if (userId) {
       ignoreNextUpdateRef.current.plans = true;
       syncPlan(newPlan);
@@ -224,7 +244,7 @@ export default function useWorkoutData(userId = null) {
     };
 
     setWorkoutPlans(prev => prev.map(p => p.id === planId ? plan : p));
-    
+
     if (userId) {
       ignoreNextUpdateRef.current.plans = true;
       syncPlan(plan);
@@ -237,11 +257,11 @@ export default function useWorkoutData(userId = null) {
   const deletePlan = useCallback((planId) => {
     if (confirm('Deletar esta ficha de treino?')) {
       setWorkoutPlans(prev => prev.filter(plan => plan.id !== planId));
-      
+
       if (userId) {
         syncDeletePlan(planId);
       }
-      
+
       return true;
     }
     return false;
@@ -272,7 +292,7 @@ export default function useWorkoutData(userId = null) {
     };
 
     setWorkoutPlans(prev => prev.map(p => p.id === planId ? plan : p));
-    
+
     if (userId) {
       ignoreNextUpdateRef.current.plans = true;
       syncPlan(plan);
@@ -307,7 +327,7 @@ export default function useWorkoutData(userId = null) {
     };
 
     setWorkoutPlans(prev => prev.map(p => p.id === planId ? plan : p));
-    
+
     if (userId) {
       ignoreNextUpdateRef.current.plans = true;
       syncPlan(plan);
@@ -329,12 +349,12 @@ export default function useWorkoutData(userId = null) {
       };
 
       setWorkoutPlans(prev => prev.map(p => p.id === planId ? plan : p));
-      
+
       if (userId) {
         ignoreNextUpdateRef.current.plans = true;
         syncPlan(plan);
       }
-      
+
       return true;
     }
     return false;
@@ -358,7 +378,7 @@ export default function useWorkoutData(userId = null) {
     };
 
     setWorkoutPlans(prev => prev.map(p => p.id === planId ? plan : p));
-    
+
     if (userId) {
       ignoreNextUpdateRef.current.plans = true;
       syncPlan(plan);
@@ -372,14 +392,14 @@ export default function useWorkoutData(userId = null) {
 
     const index = updatedPlan.exercises.findIndex(ex => ex.id === exerciseId);
     const newIndex = direction === 'up' ? index - 1 : index + 1;
-    
+
     if (newIndex < 0 || newIndex >= updatedPlan.exercises.length) {
       return;
     }
 
     const newExercises = [...updatedPlan.exercises];
     [newExercises[index], newExercises[newIndex]] = [newExercises[newIndex], newExercises[index]];
-    
+
     const plan = {
       ...updatedPlan,
       exercises: newExercises,
@@ -387,60 +407,204 @@ export default function useWorkoutData(userId = null) {
     };
 
     setWorkoutPlans(prev => prev.map(p => p.id === planId ? plan : p));
-    
+
     if (userId) {
       ignoreNextUpdateRef.current.plans = true;
       syncPlan(plan);
     }
   }, [workoutPlans, userId, syncPlan]);
 
-  // Registrar treino
-  const recordWorkout = useCallback((plan, exercise) => {
+  /**
+   * Persiste a carga usada de volta no exercício do plano (atualiza o plano).
+   */
+  const persistWeightToPlan = useCallback((planId, exerciseId, newWeight) => {
+    if (newWeight == null || newWeight === '') return;
+    const numWeight = parseFloat(newWeight);
+    if (isNaN(numWeight)) return;
+
+    const targetPlan = workoutPlans.find(p => p.id === planId);
+    if (!targetPlan) return;
+
+    const exerciseExists = targetPlan.exercises.find(ex => ex.id === exerciseId);
+    if (!exerciseExists || exerciseExists.weight === numWeight) return;
+
+    const updatedPlan = {
+      ...targetPlan,
+      exercises: targetPlan.exercises.map(ex =>
+        ex.id === exerciseId ? { ...ex, weight: numWeight } : ex
+      ),
+      updatedAt: new Date().toISOString()
+    };
+
+    setWorkoutPlans(prev => prev.map(p => p.id === planId ? updatedPlan : p));
+
+    if (userId) {
+      ignoreNextUpdateRef.current.plans = true;
+      syncPlan(updatedPlan);
+    }
+  }, [workoutPlans, userId, syncPlan]);
+
+  /**
+   * Atualiza a carga utilizada num exercício durante o treino (antes de confirmar séries).
+   * Não salva no histórico ainda — só atualiza o setProgress.
+   */
+  const updateExerciseWeight = useCallback((exerciseId, weight) => {
+    setSetProgress(prev => ({
+      ...prev,
+      [exerciseId]: {
+        ...prev[exerciseId],
+        weight: weight === '' ? '' : parseFloat(weight) || 0,
+        sets: prev[exerciseId]?.sets || []
+      }
+    }));
+  }, []);
+
+  /**
+   * Confirma uma série de um exercício.
+   * - Salva as reps no setProgress
+   * - Se for a última série, grava no histórico e limpa o progresso deste exercício
+   * @returns {boolean} true se o exercício foi concluído nesta confirmação
+   */
+  const confirmSet = useCallback((plan, exercise, setIndex, reps) => {
+    const exerciseId = exercise.id;
+    const current = setProgress[exerciseId] || { weight: exercise.weight, sets: [] };
+
+    const updatedSets = [...current.sets];
+    updatedSets[setIndex] = { reps: reps != null && reps !== '' ? (parseInt(reps) || 0) : null };
+
+    const isLastSet = setIndex === exercise.sets - 1;
+
+    if (!isLastSet) {
+      // Ainda não terminou — só atualiza o progresso parcial
+      setSetProgress(prev => ({
+        ...prev,
+        [exerciseId]: { ...current, sets: updatedSets }
+      }));
+      return false;
+    }
+
+    // Última série: grava no histórico
+    const record = {
+      id: Date.now(),
+      planId: plan.id,
+      planName: plan.name,
+      exerciseId: exercise.id,
+      exerciseName: exercise.name,
+      plannedSets: exercise.sets,
+      plannedReps: exercise.reps,
+      plannedWeight: exercise.weight,
+      weight: current.weight ?? exercise.weight,
+      completedSets: updatedSets,
+      completed: true,
+      date: new Date().toISOString(),
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString()
+    };
+
+    setHistory(prev => [record, ...prev]);
+
+    // Remove o progresso parcial deste exercício
+    setSetProgress(prev => {
+      const next = { ...prev };
+      delete next[exerciseId];
+      return next;
+    });
+
+    // Persiste a carga no plano se foi alterada
+    persistWeightToPlan(plan.id, exercise.id, current.weight);
+
+    if (userId) {
+      ignoreNextUpdateRef.current.history = true;
+      syncHistory(record);
+    }
+
+    return true;
+  }, [setProgress, userId, syncHistory, persistWeightToPlan]);
+
+  /**
+   * Conclui um exercício de uma vez, sem exigir confirmação série a série.
+   * setsData é um array opcional com as reps digitadas pelo usuário (pode conter nulls).
+   */
+  const completeExercise = useCallback((plan, exercise, setsData = []) => {
+    const exerciseId = exercise.id;
+    const current = setProgress[exerciseId] || { weight: exercise.weight, sets: [] };
+
+    const completedSets = Array.from({ length: exercise.sets }, (_, i) => {
+      if (current.sets[i]) return current.sets[i];
+      const raw = setsData[i];
+      const reps = raw != null && raw !== '' ? (parseInt(raw) || 0) : null;
+      return { reps };
+    });
+
+    const record = {
+      id: Date.now(),
+      planId: plan.id,
+      planName: plan.name,
+      exerciseId: exercise.id,
+      exerciseName: exercise.name,
+      plannedSets: exercise.sets,
+      plannedReps: exercise.reps,
+      plannedWeight: exercise.weight,
+      weight: current.weight ?? exercise.weight,
+      completedSets,
+      completed: true,
+      date: new Date().toISOString(),
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString()
+    };
+
+    setHistory(prev => [record, ...prev]);
+
+    setSetProgress(prev => {
+      const next = { ...prev };
+      delete next[exerciseId];
+      return next;
+    });
+
+    // Persiste a carga no plano se foi alterada
+    persistWeightToPlan(plan.id, exercise.id, current.weight);
+
+    if (userId) {
+      ignoreNextUpdateRef.current.history = true;
+      syncHistory(record);
+    }
+
+    return true;
+  }, [setProgress, userId, syncHistory, persistWeightToPlan]);
+
+  /**
+   * Desfaz o registro completo de um exercício e restaura o progresso parcial
+   * para que o usuário possa reeditar as séries.
+   */
+  const undoExercise = useCallback((plan, exercise) => {
     const today = new Date().toLocaleDateString('pt-BR');
     const existingRecord = history.find(record => {
       const recordDate = new Date(record.date).toLocaleDateString('pt-BR');
-      return recordDate === today && 
-             record.planId === plan.id && 
-             record.exerciseId === exercise.id;
+      return recordDate === today &&
+        record.planId === plan.id &&
+        record.exerciseId === exercise.id;
     });
 
-    if (existingRecord) {
-      // Remover (desmarcar)
-      setHistory(prev => prev.filter(r => r.id !== existingRecord.id));
-      
-      if (userId) {
-        syncDeleteHistory(existingRecord.id);
-      }
-      
-      return false;
-    } else {
-      // Criar novo registro
-      const record = {
-        id: Date.now(),
-        planId: plan.id,
-        planName: plan.name,
-        exerciseId: exercise.id,
-        exerciseName: exercise.name,
-        plannedSets: exercise.sets,
-        plannedReps: exercise.reps,
-        completed: true,
-        date: new Date().toISOString(),
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString()
-      };
+    if (!existingRecord) return;
 
-      setHistory(prev => [record, ...prev]);
-      
-      if (userId) {
-        ignoreNextUpdateRef.current.history = true;
-        syncHistory(record);
+    // Remove do histórico
+    setHistory(prev => prev.filter(r => r.id !== existingRecord.id));
+
+    // Restaura apenas a carga — séries ficam vazias para reedição
+    setSetProgress(prev => ({
+      ...prev,
+      [exercise.id]: {
+        weight: existingRecord.weight ?? exercise.weight,
+        sets: []
       }
-      
-      return true;
+    }));
+
+    if (userId) {
+      syncDeleteHistory(existingRecord.id);
     }
-  }, [history, userId, syncHistory, syncDeleteHistory]);
+  }, [history, userId, syncDeleteHistory]);
 
-  // Verificar exercícios concluídos hoje
+  // Verificar exercícios concluídos hoje (retorna Set de exerciseId)
   const getTodayRecords = useCallback((planId) => {
     const today = new Date().toLocaleDateString('pt-BR');
     return history.filter(record => {
@@ -449,14 +613,14 @@ export default function useWorkoutData(userId = null) {
     });
   }, [history]);
 
-  // Remover registro de treino
+  // Remover registro de treino manualmente
   const removeRecord = useCallback((recordId) => {
     setHistory(prev => prev.filter(r => r.id !== recordId));
-    
+
     if (userId) {
       syncDeleteHistory(recordId);
     }
-    
+
     return true;
   }, [userId, syncDeleteHistory]);
 
@@ -479,6 +643,7 @@ export default function useWorkoutData(userId = null) {
     syncError,
     isOnline,
     lastSyncedAt,
+    setProgress,
     createPlan,
     editPlanName,
     duplicatePlan,
@@ -488,7 +653,10 @@ export default function useWorkoutData(userId = null) {
     deleteExercise,
     duplicateExercise,
     moveExercise,
-    recordWorkout,
+    updateExerciseWeight,
+    confirmSet,
+    completeExercise,
+    undoExercise,
     getTodayRecords,
     removeRecord,
     groupHistoryByDate
