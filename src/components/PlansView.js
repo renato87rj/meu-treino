@@ -1,5 +1,6 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { ClipboardList, Copy, Trash2, ChevronUp, ChevronDown, Edit2, Save, X, Plus, Dumbbell, MoreVertical } from 'lucide-react';
+import ExerciseAutocomplete from './ExerciseAutocomplete';
 
 export default function PlansView({ 
   workoutPlans, 
@@ -32,6 +33,13 @@ export default function PlansView({
   });
   const previousPlansCount = useRef(workoutPlans.length);
   const menuRefs = useRef({});
+
+  // Nomes únicos de exercícios já usados pelo usuário
+  const userExerciseNames = useMemo(() => {
+    const names = new Set();
+    workoutPlans.forEach(plan => plan.exercises.forEach(ex => names.add(ex.name)));
+    return [...names];
+  }, [workoutPlans]);
 
   // Detectar quando uma nova ficha é criada e expandir automaticamente se tiver 0 exercícios
   useEffect(() => {
@@ -324,11 +332,11 @@ export default function PlansView({
                            style={{ background: 'rgba(255,255,255,0.04)' }}>
                         <h4 className="text-[13px] font-semibold text-white mb-3">Novo Exercício</h4>
                         <div className="space-y-2.5">
-                          <input
-                            type="text"
+                          <ExerciseAutocomplete
                             value={newExercise.name}
-                            onChange={(e) => setNewExercise({...newExercise, name: e.target.value})}
+                            onChange={(name) => setNewExercise({...newExercise, name})}
                             placeholder="Nome do exercício"
+                            userExercises={userExerciseNames}
                             className="w-full bg-white/[0.05] border border-purple-500/25 rounded-[12px]
                                        px-4 py-3 text-[14px] text-white placeholder:text-[#4a4568]
                                        focus:outline-none focus:border-purple-400/50 transition-colors"
@@ -404,10 +412,10 @@ export default function PlansView({
                             >
                               {isEditing ? (
                                 <div className="flex-1 space-y-2 py-1">
-                                  <input
-                                    type="text"
+                                  <ExerciseAutocomplete
                                     value={editingExercise.name}
-                                    onChange={(e) => setEditingExercise({...editingExercise, name: e.target.value})}
+                                    onChange={(name) => setEditingExercise({...editingExercise, name})}
+                                    userExercises={userExerciseNames}
                                     className="w-full bg-white/[0.05] border border-purple-500/25 rounded-[10px]
                                                px-3 py-2 text-[13px] text-white focus:outline-none focus:border-purple-400/50"
                                   />

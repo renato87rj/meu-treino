@@ -1,5 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { Dumbbell, RotateCcw, Check, Plus, X, Search, ArrowRightLeft } from 'lucide-react';
+import ExerciseAutocomplete from './ExerciseAutocomplete';
 
 export default function WorkoutView({
   selectedPlan,
@@ -23,6 +24,13 @@ export default function WorkoutView({
   const [pickerTab, setPickerTab] = useState('plans');
   const [pickerSearch, setPickerSearch] = useState('');
   const [customForm, setCustomForm] = useState({ name: '', sets: '3', reps: '12', weight: '' });
+
+  // Nomes únicos de exercícios já usados pelo usuário
+  const userExerciseNames = useMemo(() => {
+    const names = new Set();
+    (allPlans || []).forEach(plan => plan.exercises.forEach(ex => names.add(ex.name)));
+    return [...names];
+  }, [allPlans]);
 
   if (!selectedPlan) return null;
 
@@ -496,11 +504,11 @@ export default function WorkoutView({
                 <div className="space-y-3">
                   <div>
                     <label className="text-[11px] text-[#7c6f9e] mb-1 block">Nome do exercício</label>
-                    <input
-                      type="text"
+                    <ExerciseAutocomplete
                       value={customForm.name}
-                      onChange={e => setCustomForm(prev => ({ ...prev, name: e.target.value }))}
+                      onChange={name => setCustomForm(prev => ({ ...prev, name }))}
                       placeholder="Ex: Voador"
+                      userExercises={userExerciseNames}
                       className="w-full bg-white/[0.05] border border-purple-500/25 rounded-[12px]
                                  px-4 py-3 text-[14px] text-white placeholder:text-[#4a4568]
                                  focus:outline-none focus:border-purple-400/50"
