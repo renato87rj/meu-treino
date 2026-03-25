@@ -118,6 +118,27 @@ export default function WorkoutTracker() {
   const completedTodayIds = new Set(todayRecords.map(r => r.exerciseId));
   const completedTodayNames = new Set(todayRecords.map(r => r.exerciseName));
 
+  // Último registro anterior ao treino de hoje (por nome do exercício dentro do plano)
+  const lastWorkoutRecordsByExerciseName = (() => {
+    if (view !== 'workout' || !selectedPlan) return {};
+
+    const today = new Date().toLocaleDateString('pt-BR');
+    const entries = (history || [])
+      .filter(r => r.planId === selectedPlan.id)
+      .filter(r => {
+        const d = new Date(r.date).toLocaleDateString('pt-BR');
+        return d !== today;
+      })
+      .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+
+    const map = {};
+    for (const r of entries) {
+      if (!r?.exerciseName) continue;
+      if (!map[r.exerciseName]) map[r.exerciseName] = r;
+    }
+    return map;
+  })();
+
   return (
     <div className="min-h-screen bg-[#08060f] relative overflow-x-hidden">
       <InstallPrompt />
@@ -186,6 +207,7 @@ export default function WorkoutTracker() {
             completedTodayIds={completedTodayIds}
             completedTodayNames={completedTodayNames}
             todayRecords={todayRecords}
+            lastWorkoutRecordsByExerciseName={lastWorkoutRecordsByExerciseName}
             setProgress={setProgress}
             onConfirmSet={confirmSet}
             onUpdateWeight={updateExerciseWeight}
