@@ -17,9 +17,11 @@ export default function WorkoutView({
   substituteExercises,
   onAddSubstitute,
   onRemoveSubstitute,
-  onStartRestTimer
+  onStartRestTimer,
+  onFinishWorkout
 }) {
   const [expanded, setExpanded] = useState({});
+  const [workoutFinished, setWorkoutFinished] = useState(false);
   const [repsInput, setRepsInput] = useState({});
   const [showPicker, setShowPicker] = useState(false);
   const [pickerTab, setPickerTab] = useState('plans');
@@ -78,6 +80,7 @@ export default function WorkoutView({
   const handleUndo = (exercise) => {
     const record = todayRecords.find(r => r.exerciseId === exercise.id || r.exerciseName === exercise.name);
     onUndoExercise(selectedPlan, exercise);
+    setWorkoutFinished(false);
     setExpanded(prev => ({ ...prev, [exercise.id]: true }));
     if (record?.completedSets) {
       const prefilled = {};
@@ -160,28 +163,56 @@ export default function WorkoutView({
   const allExercises = [...selectedPlan.exercises, ...(substituteExercises || [])];
   const completedCount = allExercises.filter(ex => isCompleted(ex)).length;
   const totalCount = allExercises.length;
+  const allCompleted = completedCount === totalCount && totalCount > 0;
+  const isWorkoutDone = workoutFinished || allCompleted;
 
   return (
     <div className="pt-4">
       {/* Hero card de progresso */}
-      <div className="card-elevated p-4 mb-4 mt-1">
-        <p className="text-[10px] text-purple-400 font-semibold tracking-[.8px] uppercase mb-2">
-          progresso de hoje
-        </p>
-        <div className="flex items-baseline gap-2">
-          <span className="text-[34px] font-bold text-white tracking-tight leading-none">
-            {completedCount}
-          </span>
-          <span className="text-[18px] text-[#4a4568] font-medium">/{totalCount}</span>
-          <span className="text-[12px] text-[#7c6f9e] ml-1">exercícios</span>
-        </div>
-        {totalCount > 0 && (
-          <div className="h-[3px] rounded-full mt-3 overflow-hidden bg-[#2d1f55]">
-            <div
-              className="h-full bg-purple-500 rounded-full transition-all duration-500"
-              style={{ width: `${(completedCount / totalCount) * 100}%` }}
-            />
-          </div>
+      <div className={`card-elevated p-4 mb-4 mt-1 transition-all duration-500 ${
+        isWorkoutDone ? 'border-green-500/30 bg-green-500/[0.06]' : ''
+      }`}>
+        {isWorkoutDone ? (
+          <>
+            <div className="flex items-center gap-3 mb-1">
+              <div className="w-10 h-10 rounded-full bg-green-500/15 border border-green-500/30 flex items-center justify-center">
+                <Check size={20} className="text-green-400" />
+              </div>
+              <div>
+                <p className="text-[15px] font-bold text-green-400">Treino Concluído!</p>
+                <p className="text-[11px] text-[#7c6f9e] mt-0.5">{completedCount}/{totalCount} exercícios realizados</p>
+              </div>
+            </div>
+            {totalCount > 0 && (
+              <div className="h-[3px] rounded-full mt-3 overflow-hidden bg-green-900/30">
+                <div
+                  className="h-full bg-green-500 rounded-full transition-all duration-500"
+                  style={{ width: `${(completedCount / totalCount) * 100}%` }}
+                />
+              </div>
+            )}
+          </>
+        ) : (
+          <>
+            <p className="text-[10px] text-purple-400 font-semibold tracking-[.8px] uppercase mb-2">
+              progresso de hoje
+            </p>
+            <div className="flex items-baseline gap-2">
+              <span className="text-[34px] font-bold text-white tracking-tight leading-none">
+                {completedCount}
+              </span>
+              <span className="text-[18px] text-[#4a4568] font-medium">/{totalCount}</span>
+              <span className="text-[12px] text-[#7c6f9e] ml-1">exercícios</span>
+            </div>
+            {totalCount > 0 && (
+              <div className="h-[3px] rounded-full mt-3 overflow-hidden bg-[#2d1f55]">
+                <div
+                  className="h-full bg-purple-500 rounded-full transition-all duration-500"
+                  style={{ width: `${(completedCount / totalCount) * 100}%` }}
+                />
+              </div>
+            )}
+          </>
         )}
       </div>
 
@@ -554,6 +585,19 @@ export default function WorkoutView({
             <ArrowRightLeft size={13} />
             adicionar exercício substituto
           </button>
+
+          {/* Botão de concluir treino */}
+          {!isWorkoutDone && (
+            <button
+              onClick={() => setWorkoutFinished(true)}
+              className="w-full flex items-center justify-center gap-2 py-3.5 mt-4 rounded-[16px]
+                         text-[13px] font-bold text-white
+                         bg-purple-600 active:scale-[0.98] transition-transform
+                         shadow-lg shadow-purple-900/30">
+              <Check size={15} />
+              Concluir Treino
+            </button>
+          )}
         </div>
       )}
 

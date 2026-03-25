@@ -217,6 +217,7 @@ export default function WorkoutTracker() {
             onAddSubstitute={(ex) => addSubstituteExercise(selectedPlan.id, ex)}
             onRemoveSubstitute={(exId) => removeSubstituteExercise(selectedPlan.id, exId)}
             onStartRestTimer={startRestTimer}
+            onFinishWorkout={() => handleViewChange('plans')}
           />
         )}
 
