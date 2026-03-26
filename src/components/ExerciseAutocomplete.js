@@ -21,6 +21,8 @@ export default function ExerciseAutocomplete({
 }) {
   const [isOpen, setIsOpen] = useState(false);
   const [highlightIndex, setHighlightIndex] = useState(-1);
+  const [suppressAutoOpen, setSuppressAutoOpen] = useState(false);
+  const [manuallyClosed, setManuallyClosed] = useState(false);
   const wrapperRef = useRef(null);
   const listRef = useRef(null);
   const inputRef = useRef(null);
@@ -50,17 +52,19 @@ export default function ExerciseAutocomplete({
     return found.map(r => r.item);
   }, [value, fuse]);
 
-  // Abre o dropdown quando tem resultados
-  useEffect(() => {
-    setIsOpen(results.length > 0);
-    setHighlightIndex(-1);
-  }, [results]);
+  const shouldShow =
+    isOpen &&
+    !manuallyClosed &&
+    !suppressAutoOpen &&
+    results.length > 0;
 
   // Fecha ao clicar fora
   useEffect(() => {
     const handleClickOutside = (e) => {
       if (wrapperRef.current && !wrapperRef.current.contains(e.target)) {
         setIsOpen(false);
+        setManuallyClosed(true);
+        setHighlightIndex(-1);
       }
     };
     document.addEventListener('mousedown', handleClickOutside);
@@ -76,6 +80,8 @@ export default function ExerciseAutocomplete({
   }, [highlightIndex]);
 
   const handleSelect = (name) => {
+    setSuppressAutoOpen(true);
+    setManuallyClosed(true);
     onChange(name);
     setIsOpen(false);
     setHighlightIndex(-1);
@@ -95,6 +101,8 @@ export default function ExerciseAutocomplete({
       handleSelect(results[highlightIndex].name);
     } else if (e.key === 'Escape') {
       setIsOpen(false);
+      setManuallyClosed(true);
+      setHighlightIndex(-1);
     }
   };
 
@@ -104,15 +112,23 @@ export default function ExerciseAutocomplete({
         ref={inputRef}
         type="text"
         value={value}
-        onChange={(e) => onChange(e.target.value)}
+        onChange={(e) => {
+          setSuppressAutoOpen(false);
+          setManuallyClosed(false);
+          onChange(e.target.value);
+          setIsOpen(true);
+          setHighlightIndex(-1);
+        }}
         onKeyDown={handleKeyDown}
-        onFocus={() => { if (results.length > 0) setIsOpen(true); }}
+        onFocus={() => {
+          if (!suppressAutoOpen && !manuallyClosed && results.length > 0) setIsOpen(true);
+        }}
         placeholder={placeholder}
         className={className}
         autoComplete="off"
       />
 
-      {isOpen && results.length > 0 && (
+      {shouldShow && (
         <ul
           ref={listRef}
           className="absolute z-50 left-0 right-0 mt-1 max-h-[220px] overflow-y-auto
