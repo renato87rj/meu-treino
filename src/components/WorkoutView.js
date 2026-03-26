@@ -18,10 +18,11 @@ export default function WorkoutView({
   onAddSubstitute,
   onRemoveSubstitute,
   onStartRestTimer,
-  onFinishWorkout
+  onFinishWorkout,
+  workoutFinished,
+  setWorkoutFinished
 }) {
   const [expanded, setExpanded] = useState({});
-  const [workoutFinished, setWorkoutFinished] = useState(false);
   const [repsInput, setRepsInput] = useState({});
   const [showPicker, setShowPicker] = useState(false);
   const [pickerTab, setPickerTab] = useState('plans');

@@ -24,6 +24,20 @@ export default function WorkoutTracker() {
   const [showAddPlan, setShowAddPlan] = useState(false);
   const [showAddExercise, setShowAddExercise] = useState(false);
 
+  // Fichas manualmente concluídas hoje (persistido em localStorage por planId + data)
+  const [finishedPlanIds, setFinishedPlanIds] = useState(() => {
+    if (typeof window === 'undefined') return new Set();
+    try {
+      const today = new Date().toLocaleDateString('pt-BR');
+      const stored = JSON.parse(localStorage.getItem('workoutFinished') || '{}');
+      const ids = new Set();
+      Object.entries(stored).forEach(([planId, date]) => {
+        if (date === today) ids.add(planId);
+      });
+      return ids;
+    } catch { return new Set(); }
+  });
+
   // Hook de dados de treino - DEVE estar antes de qualquer early return
   const {
     workoutPlans,
@@ -87,6 +101,25 @@ export default function WorkoutTracker() {
   if (!user) {
     return null;
   }
+
+  // Estado derivado: ficha atual concluída manualmente?
+  const workoutFinished = selectedPlan ? finishedPlanIds.has(selectedPlan.id) : false;
+
+  const setWorkoutFinished = (finished) => {
+    if (!selectedPlan) return;
+    const planId = selectedPlan.id;
+    const today = new Date().toLocaleDateString('pt-BR');
+    setFinishedPlanIds(prev => {
+      const next = new Set(prev);
+      if (finished) next.add(planId); else next.delete(planId);
+      return next;
+    });
+    try {
+      const stored = JSON.parse(localStorage.getItem('workoutFinished') || '{}');
+      if (finished) stored[planId] = today; else delete stored[planId];
+      localStorage.setItem('workoutFinished', JSON.stringify(stored));
+    } catch {}
+  };
 
   // Selecionar ficha para treinar
   const selectPlanForWorkout = (plan) => {
@@ -218,6 +251,8 @@ export default function WorkoutTracker() {
             onRemoveSubstitute={(exId) => removeSubstituteExercise(selectedPlan.id, exId)}
             onStartRestTimer={startRestTimer}
             onFinishWorkout={() => handleViewChange('plans')}
+            workoutFinished={workoutFinished}
+            setWorkoutFinished={setWorkoutFinished}
           />
         )}
 
