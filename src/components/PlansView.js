@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
-import { ClipboardList, Copy, Trash2, Edit2, Save, X, Plus, Dumbbell, MoreVertical, GripVertical } from 'lucide-react';
+import { ClipboardList, Copy, Trash2, Edit2, Save, X, Plus, Dumbbell, MoreVertical, GripVertical, Clock } from 'lucide-react';
 import ExerciseAutocomplete from './ExerciseAutocomplete';
 
 export default function PlansView({ 
@@ -526,9 +526,58 @@ export default function PlansView({
                   )}
                 </div>
 
+                {/* Indicador de idade da ficha */}
+                {(() => {
+                  const createdAt = plan.createdAt ? new Date(plan.createdAt) : null;
+                  if (!createdAt) return null;
+                  
+                  const now = new Date();
+                  const diffMs = now - createdAt;
+                  const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+                  
+                  const createdDay = String(createdAt.getDate()).padStart(2, '0');
+                  const createdMonth = String(createdAt.getMonth() + 1).padStart(2, '0');
+                  const dateLabel = `${createdDay}/${createdMonth}`;
+                  
+                  let color, bgColor, borderColor, label;
+                  if (diffDays < 45) {
+                    color = '#4ade80';
+                    bgColor = 'rgba(74, 222, 128, 0.08)';
+                    borderColor = 'rgba(74, 222, 128, 0.25)';
+                    label = null;
+                  } else if (diffDays < 90) {
+                    color = '#fbbf24';
+                    bgColor = 'rgba(251, 191, 36, 0.08)';
+                    borderColor = 'rgba(251, 191, 36, 0.25)';
+                    label = 'considere revisar';
+                  } else {
+                    color = '#f87171';
+                    bgColor = 'rgba(248, 113, 113, 0.08)';
+                    borderColor = 'rgba(248, 113, 113, 0.25)';
+                    label = 'hora de revisar';
+                  }
+                  
+                  return (
+                    <div
+                      className="flex items-center gap-2 mt-3 px-3 py-2 rounded-full"
+                      style={{ background: bgColor, border: `0.5px solid ${borderColor}` }}
+                    >
+                      <Clock size={12} style={{ color }} />
+                      <span className="text-[11px] flex-1" style={{ color }}>
+                        usada há {diffDays} dias · desde {dateLabel}
+                      </span>
+                      {label && (
+                        <span className="text-[10px]" style={{ color, opacity: 0.8 }}>
+                          {label}
+                        </span>
+                      )}
+                    </div>
+                  );
+                })()}
+
                 {/* Dots de progresso */}
                 {plan.exercises.length > 0 && !isExpanded && (
-                  <div className="flex gap-1.5 mt-3">
+                  <div className="flex gap-1.5 mt-2">
                     {plan.exercises.map((ex) => (
                       <div key={ex.id} className="w-2 h-2 rounded-full bg-[#2d1f55]" />
                     ))}
