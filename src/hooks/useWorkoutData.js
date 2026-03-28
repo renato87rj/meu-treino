@@ -488,8 +488,8 @@ export default function useWorkoutData(userId = null) {
   /**
    * Confirma uma série de um exercício.
    * - Salva as reps no setProgress
-   * - Se for a última série, grava no histórico e limpa o progresso deste exercício
-   * @returns {boolean} true se o exercício foi concluído nesta confirmação
+   * - NÃO conclui automaticamente — a conclusão é feita pelo botão "concluir exercício"
+   * @returns {boolean} sempre false (exercício não concluído por esta ação)
    */
   const confirmSet = useCallback((plan, exercise, setIndex, reps) => {
     const exerciseId = exercise.id;
@@ -498,73 +498,12 @@ export default function useWorkoutData(userId = null) {
     const updatedSets = [...current.sets];
     updatedSets[setIndex] = { reps: reps != null && reps !== '' ? (parseInt(reps) || 0) : null };
 
-    const isLastSet = setIndex === exercise.sets - 1;
-
-    if (!isLastSet) {
-      // Ainda não terminou — só atualiza o progresso parcial
-      setSetProgress(prev => ({
-        ...prev,
-        [exerciseId]: { ...current, sets: updatedSets }
-      }));
-      return false;
-    }
-
-    // Última série: grava no histórico
-    const record = {
-      id: Date.now(),
-      planId: plan.id,
-      planName: plan.name,
-      exerciseId: exercise.id,
-      exerciseName: exercise.name,
-      plannedSets: exercise.sets,
-      plannedReps: exercise.reps,
-      plannedWeight: exercise.weight,
-      weight: current.weight ?? exercise.weight,
-      completedSets: updatedSets,
-      completed: true,
-      ...(exercise._substitute && {
-        substitute: true,
-        sourcePlanName: exercise._sourcePlanName || 'Avulso'
-      }),
-      date: new Date().toISOString(),
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString()
-    };
-
-    // Upsert: atualiza se já existe registro hoje para este exercício neste plano
-    const today = new Date().toLocaleDateString('pt-BR');
-    const existingIdx = history.findIndex(r => {
-      const d = new Date(r.date).toLocaleDateString('pt-BR');
-      return d === today && r.planId === plan.id && r.exerciseName === exercise.name;
-    });
-
-    if (existingIdx >= 0) {
-      record.id = history[existingIdx].id;
-      record.createdAt = history[existingIdx].createdAt;
-      setHistory(prev => prev.map((r, i) => i === existingIdx ? record : r));
-    } else {
-      setHistory(prev => [record, ...prev]);
-    }
-
-    // Remove o progresso parcial deste exercício
-    setSetProgress(prev => {
-      const next = { ...prev };
-      delete next[exerciseId];
-      return next;
-    });
-
-    // Persiste a carga no plano se foi alterada (apenas exercícios da ficha)
-    if (!exercise._substitute) {
-      persistWeightToPlan(plan.id, exercise.id, current.weight);
-    }
-
-    if (userId) {
-      ignoreNextUpdateRef.current.history = true;
-      syncHistory(record);
-    }
-
-    return true;
-  }, [setProgress, history, userId, syncHistory, persistWeightToPlan]);
+    setSetProgress(prev => ({
+      ...prev,
+      [exerciseId]: { ...current, sets: updatedSets }
+    }));
+    return false;
+  }, [setProgress]);
 
   /**
    * Conclui um exercício de uma vez, sem exigir confirmação série a série.
@@ -668,6 +607,24 @@ export default function useWorkoutData(userId = null) {
     }
   }, [history, userId, syncDeleteHistory]);
 
+  /**
+   * Desfaz a confirmação de uma série específica (e todas após ela).
+   * Retorna as reps que estavam registradas para pré-preencher o input.
+   */
+  const unconfirmSet = useCallback((exerciseId, setIndex) => {
+    const current = setProgress[exerciseId];
+    if (!current) return null;
+    const reps = current.sets[setIndex]?.reps;
+    setSetProgress(prev => ({
+      ...prev,
+      [exerciseId]: {
+        ...prev[exerciseId],
+        sets: (prev[exerciseId]?.sets || []).slice(0, setIndex)
+      }
+    }));
+    return reps;
+  }, [setProgress]);
+
   // Verificar exercícios concluídos hoje (retorna Set de exerciseId)
   const getTodayRecords = useCallback((planId) => {
     const today = new Date().toLocaleDateString('pt-BR');
@@ -719,6 +676,7 @@ export default function useWorkoutData(userId = null) {
     moveExercise,
     updateExerciseWeight,
     confirmSet,
+    unconfirmSet,
     completeExercise,
     undoExercise,
     substituteExercises,

@@ -57,6 +57,7 @@ export default function WorkoutTracker() {
     setProgress,
     updateExerciseWeight,
     confirmSet,
+    unconfirmSet,
     completeExercise,
     undoExercise,
     substituteExercises,
@@ -243,6 +244,7 @@ export default function WorkoutTracker() {
             lastWorkoutRecordsByExerciseName={lastWorkoutRecordsByExerciseName}
             setProgress={setProgress}
             onConfirmSet={confirmSet}
+            onUnconfirmSet={unconfirmSet}
             onUpdateWeight={updateExerciseWeight}
             onCompleteExercise={completeExercise}
             onUndoExercise={undoExercise}
