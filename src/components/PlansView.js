@@ -765,17 +765,19 @@ export default function PlansView({
             );
           })}
 
-          {/* Botão de nova ficha — CTA no rodapé da lista */}
-          <button
-            onClick={onAddPlan}
-            className="w-full flex items-center justify-center gap-2 mt-2 py-4 rounded-[16px]
-                       text-[14px] font-semibold text-white bg-purple-600
-                       active:scale-[0.98] transition-transform">
-            <Plus size={16} />
-            nova ficha
-          </button>
         </div>
       )}
+
+      {/* FAB — Floating Action Button (Android style) */}
+      <button
+        onClick={onAddPlan}
+        className="fixed bottom-24 right-5 w-14 h-14 rounded-full flex items-center justify-center
+                   bg-purple-600 text-white shadow-lg shadow-purple-900/40
+                   active:scale-95 transition-transform z-40"
+        aria-label="Nova ficha"
+      >
+        <Plus size={24} strokeWidth={2.5} />
+      </button>
     </div>
   );
 }
