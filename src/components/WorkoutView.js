@@ -11,6 +11,7 @@ export default function WorkoutView({
   lastWorkoutRecordsByExerciseName,
   setProgress,
   onConfirmSet,
+  onUnconfirmSet,
   onUpdateWeight,
   onCompleteExercise,
   onUndoExercise,
@@ -68,6 +69,16 @@ export default function WorkoutView({
       if (next[exercise.id]) delete next[exercise.id][setIndex];
       return next;
     });
+  };
+
+  const handleUnconfirmSet = (exercise, setIndex) => {
+    const reps = onUnconfirmSet(exercise.id, setIndex);
+    if (reps != null) {
+      setRepsInput(prev => ({
+        ...prev,
+        [exercise.id]: { ...(prev[exercise.id] || {}), [setIndex]: String(reps) }
+      }));
+    }
   };
 
   const handleCompleteExercise = (exercise) => {
@@ -518,10 +529,13 @@ export default function WorkoutView({
                                       </>
                                     )}
                                     {isConfirmed ? (
-                                      <div className="rounded-[10px] py-1.5 px-2 text-center text-[12px] text-green-400
-                                                      bg-green-500/[0.06] border border-green-500/20">
+                                      <button
+                                        onClick={() => handleUnconfirmSet(exercise, i)}
+                                        className="w-full rounded-[10px] py-1.5 px-2 text-center text-[12px] text-green-400
+                                                   bg-green-500/[0.06] border border-green-500/20
+                                                   active:bg-green-500/15 transition-colors cursor-pointer">
                                         {progress.sets[i].reps} reps
-                                      </div>
+                                      </button>
                                     ) : (
                                       <input
                                         type="number" inputMode="numeric" min="1"
@@ -537,10 +551,13 @@ export default function WorkoutView({
                                       />
                                     )}
                                     {isConfirmed ? (
-                                      <div className="w-7 h-7 rounded-full flex items-center justify-center
-                                                      bg-green-500/10 border border-green-500/30">
-                                        <Check size={11} className="text-green-400" />
-                                      </div>
+                                      <button
+                                        onClick={() => handleUnconfirmSet(exercise, i)}
+                                        className="w-7 h-7 rounded-full flex items-center justify-center
+                                                   bg-green-500/10 border border-green-500/30
+                                                   active:bg-yellow-500/20 transition-colors cursor-pointer">
+                                        <RotateCcw size={10} className="text-green-400" />
+                                      </button>
                                     ) : (
                                       <button
                                         disabled={isLocked || !repsInput[exercise.id]?.[i]}
