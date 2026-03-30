@@ -75,6 +75,8 @@ export default function WorkoutTracker() {
     formatTime
   } = useRestTimer(90);
 
+  const { todayRecords, completedTodayIds, completedTodayNames, lastWorkoutRecordsByExerciseName } = useWorkoutDerivedState(view, selectedPlan, history, getTodayRecords);
+
   useEffect(() => {
     if (!loading && !user) {
       router.push('/login');
@@ -92,8 +94,6 @@ export default function WorkoutTracker() {
   if (!user) {
     return null;
   }
-
-  const { todayRecords, completedTodayIds, completedTodayNames, lastWorkoutRecordsByExerciseName } = useWorkoutDerivedState(view, selectedPlan, history, getTodayRecords);
 
   const workoutFinished = selectedPlan ? isFinished(selectedPlan.id) : false;
   const setWorkoutFinished = (finished) => selectedPlan && setFinished(selectedPlan.id, finished);
