@@ -3,17 +3,19 @@
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 
-import InstallPrompt from '../components/InstallPrompt';
-import Header from '../components/Header';
-import TabBar from '../components/TabBar';
-import RestTimer from '../components/RestTimer';
-import TimerButton from '../components/TimerButton';
-import PlansView from '../components/PlansView';
-import WorkoutView from '../components/WorkoutView';
-import HistoryView from '../components/HistoryView';
+import InstallPrompt from '../components/ui/InstallPrompt';
+import Header from '../components/ui/Header';
+import TabBar from '../components/ui/TabBar';
+import RestTimer from '../components/features/RestTimer';
+import TimerButton from '../components/features/TimerButton';
+import PlansView from '../components/features/PlansView';
+import WorkoutView from '../components/features/WorkoutView';
+import HistoryView from '../components/features/HistoryView';
 
 import useWorkoutData from '../hooks/useWorkoutData';
 import useRestTimer from '../hooks/useRestTimer';
+import useFinishedPlans from '../hooks/useFinishedPlans';
+import useWorkoutDerivedState from '../hooks/useWorkoutDerivedState';
 import { useAuth } from '../contexts/AuthContext';
 
 export default function WorkoutTracker() {
@@ -24,19 +26,7 @@ export default function WorkoutTracker() {
   const [showAddPlan, setShowAddPlan] = useState(false);
   const [showAddExercise, setShowAddExercise] = useState(false);
 
-  // Fichas manualmente concluídas hoje (persistido em localStorage por planId + data)
-  const [finishedPlanIds, setFinishedPlanIds] = useState(() => {
-    if (typeof window === 'undefined') return new Set();
-    try {
-      const today = new Date().toLocaleDateString('pt-BR');
-      const stored = JSON.parse(localStorage.getItem('workoutFinished') || '{}');
-      const ids = new Set();
-      Object.entries(stored).forEach(([planId, date]) => {
-        if (date === today) ids.add(planId);
-      });
-      return ids;
-    } catch { return new Set(); }
-  });
+  const { isFinished, setWorkoutFinished: setFinished } = useFinishedPlans();
 
   // Hook de dados de treino - DEVE estar antes de qualquer early return
   const {
@@ -103,24 +93,10 @@ export default function WorkoutTracker() {
     return null;
   }
 
-  // Estado derivado: ficha atual concluída manualmente?
-  const workoutFinished = selectedPlan ? finishedPlanIds.has(selectedPlan.id) : false;
+  const { todayRecords, completedTodayIds, completedTodayNames, lastWorkoutRecordsByExerciseName } = useWorkoutDerivedState(view, selectedPlan, history, getTodayRecords);
 
-  const setWorkoutFinished = (finished) => {
-    if (!selectedPlan) return;
-    const planId = selectedPlan.id;
-    const today = new Date().toLocaleDateString('pt-BR');
-    setFinishedPlanIds(prev => {
-      const next = new Set(prev);
-      if (finished) next.add(planId); else next.delete(planId);
-      return next;
-    });
-    try {
-      const stored = JSON.parse(localStorage.getItem('workoutFinished') || '{}');
-      if (finished) stored[planId] = today; else delete stored[planId];
-      localStorage.setItem('workoutFinished', JSON.stringify(stored));
-    } catch {}
-  };
+  const workoutFinished = selectedPlan ? isFinished(selectedPlan.id) : false;
+  const setWorkoutFinished = (finished) => selectedPlan && setFinished(selectedPlan.id, finished);
 
   // Selecionar ficha para treinar
   const selectPlanForWorkout = (plan) => {
@@ -144,34 +120,6 @@ export default function WorkoutTracker() {
       setShowAddExercise(!showAddExercise);
     }
   };
-
-  // Obter registros de hoje
-  const todayRecords = view === 'workout' && selectedPlan 
-    ? getTodayRecords(selectedPlan.id) 
-    : [];
-  const completedTodayIds = new Set(todayRecords.map(r => r.exerciseId));
-  const completedTodayNames = new Set(todayRecords.map(r => r.exerciseName));
-
-  // Último registro anterior ao treino de hoje (por nome do exercício dentro do plano)
-  const lastWorkoutRecordsByExerciseName = (() => {
-    if (view !== 'workout' || !selectedPlan) return {};
-
-    const today = new Date().toLocaleDateString('pt-BR');
-    const entries = (history || [])
-      .filter(r => r.planId === selectedPlan.id)
-      .filter(r => {
-        const d = new Date(r.date).toLocaleDateString('pt-BR');
-        return d !== today;
-      })
-      .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-
-    const map = {};
-    for (const r of entries) {
-      if (!r?.exerciseName) continue;
-      if (!map[r.exerciseName]) map[r.exerciseName] = r;
-    }
-    return map;
-  })();
 
   return (
     <div className="min-h-screen bg-[#08060f] relative overflow-x-hidden">

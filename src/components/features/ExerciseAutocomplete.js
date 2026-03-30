@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect, useMemo } from 'react';
 import Fuse from 'fuse.js';
-import exerciseDatabase from '../data/exerciseDatabase';
+import exerciseDatabase from '../../data/exerciseDatabase';
 
 /**
  * Componente de autocomplete para nomes de exercícios.
