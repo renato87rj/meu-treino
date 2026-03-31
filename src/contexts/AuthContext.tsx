@@ -42,42 +42,36 @@ function getFirebaseErrorCode(error: unknown): string | undefined {
 
 export const AuthContextProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<AuthUser | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [firebaseError, setFirebaseError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(!auth);
+  const [firebaseError, setFirebaseError] = useState<string | null>(
+    !auth ? 'Firebase não está configurado. Por favor, configure as variáveis de ambiente.' : null
+  );
 
   useEffect(() => {
-    // Verificar se Firebase está configurado
+    // Se Firebase não está configurado, não fazer nada
     if (!auth) {
-      setFirebaseError('Firebase não está configurado. Por favor, configure as variáveis de ambiente.');
-      setLoading(false);
       return;
     }
 
-    try {
-      const unsubscribe = onAuthStateChanged(auth, (user) => {
-        if (user) {
-          setUser({
-            uid: user.uid,
-            email: user.email,
-            displayName: user.displayName
-          });
-        } else {
-          setUser(null);
-        }
-        setLoading(false);
-        setFirebaseError(null);
-      }, (error) => {
-        console.error('Erro no Firebase Auth:', error);
-        setFirebaseError(error.message);
-        setLoading(false);
-      });
-
-      return () => unsubscribe();
-    } catch (error: unknown) {
-      console.error('Erro ao configurar Firebase Auth:', error);
-      setFirebaseError(getErrorMessage(error));
+    const unsubscribe = onAuthStateChanged(auth, (user) => {
+      if (user) {
+        setUser({
+          uid: user.uid,
+          email: user.email,
+          displayName: user.displayName
+        });
+      } else {
+        setUser(null);
+      }
       setLoading(false);
-    }
+      setFirebaseError(null);
+    }, (error) => {
+      console.error('Erro no Firebase Auth:', error);
+      setFirebaseError(error.message);
+      setLoading(false);
+    });
+
+    return () => unsubscribe();
   }, []);
 
   const signIn = async (email: string, password: string) => {

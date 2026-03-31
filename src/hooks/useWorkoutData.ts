@@ -7,12 +7,66 @@ import { hasPendingOperations } from '../utils/syncQueue';
 import type { WorkoutPlan, WorkoutRecord, SetProgressMap, SubstituteExercisesMap } from '../types/workout';
 
 export default function useWorkoutData(userId: string | null = null) {
-  const [workoutPlans, setWorkoutPlans] = useState<WorkoutPlan[]>([]);
-  const [history, setHistory] = useState<WorkoutRecord[]>([]);
+  const [workoutPlans, setWorkoutPlans] = useState<WorkoutPlan[]>(() => {
+    if (typeof window === 'undefined') return [];
+    const saved = localStorage.getItem('workoutPlans');
+    if (saved) {
+      try {
+        return JSON.parse(saved);
+      } catch (error) {
+        console.error('Erro ao carregar planos do localStorage:', error);
+      }
+    }
+    return [];
+  });
+  
+  const [history, setHistory] = useState<WorkoutRecord[]>(() => {
+    if (typeof window === 'undefined') return [];
+    const saved = localStorage.getItem('workoutHistory');
+    if (saved) {
+      try {
+        return JSON.parse(saved);
+      } catch (error) {
+        console.error('Erro ao carregar histórico do localStorage:', error);
+      }
+    }
+    return [];
+  });
+  
   const [isOnline, setIsOnline] = useState(typeof navigator !== 'undefined' ? navigator.onLine : true);
   const [isInitialized, setIsInitialized] = useState(false);
-  const [setProgress, setSetProgress] = useState<SetProgressMap>({});
-  const [substituteExercises, setSubstituteExercises] = useState<SubstituteExercisesMap>({});
+  
+  const [setProgress, setSetProgress] = useState<SetProgressMap>(() => {
+    if (typeof window === 'undefined') return {};
+    const saved = localStorage.getItem('workoutSetProgress');
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved);
+        if (parsed.date === new Date().toLocaleDateString('pt-BR')) {
+          return parsed.progress || {};
+        }
+      } catch (error) {
+        console.error('Erro ao carregar progresso de séries do localStorage:', error);
+      }
+    }
+    return {};
+  });
+  
+  const [substituteExercises, setSubstituteExercises] = useState<SubstituteExercisesMap>(() => {
+    if (typeof window === 'undefined') return {};
+    const saved = localStorage.getItem('workoutSetProgress');
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved);
+        if (parsed.date === new Date().toLocaleDateString('pt-BR')) {
+          return parsed.substitutes || {};
+        }
+      } catch (error) {
+        console.error('Erro ao carregar substitutos do localStorage:', error);
+      }
+    }
+    return {};
+  });
 
   const isSyncingRef = useRef(false);
   const lastLocalUpdateRef = useRef<string | null>(null);
@@ -79,42 +133,10 @@ export default function useWorkoutData(userId: string | null = null) {
     };
   }, []);
 
-  // Carregar dados do localStorage na inicialização
+  // Marcar como inicializado após o primeiro render
   useEffect(() => {
-    if (isInitialized) return;
-
-    const savedPlans = localStorage.getItem('workoutPlans');
-    const savedHistory = localStorage.getItem('workoutHistory');
-    const savedSetProgress = localStorage.getItem('workoutSetProgress');
-
-    if (savedPlans) {
-      try {
-        setWorkoutPlans(JSON.parse(savedPlans));
-      } catch (error) {
-        console.error('Erro ao carregar planos do localStorage:', error);
-      }
-    }
-    if (savedHistory) {
-      try {
-        setHistory(JSON.parse(savedHistory));
-      } catch (error) {
-        console.error('Erro ao carregar histórico do localStorage:', error);
-      }
-    }
-    if (savedSetProgress) {
-      try {
-        const parsed = JSON.parse(savedSetProgress);
-        if (parsed.date === new Date().toLocaleDateString('pt-BR')) {
-          setSetProgress(parsed.progress || {});
-          setSubstituteExercises(parsed.substitutes || {});
-        }
-      } catch (error) {
-        console.error('Erro ao carregar progresso de séries do localStorage:', error);
-      }
-    }
-
     setIsInitialized(true);
-  }, [isInitialized]);
+  }, []);
 
   // Salvar dados automaticamente no localStorage
   useEffect(() => {
@@ -199,7 +221,7 @@ export default function useWorkoutData(userId: string | null = null) {
     };
 
     migrateData();
-  }, [userId, isInitialized, checkIfFirstSync, syncLocalToFirestore]);
+  }, [userId, isInitialized, checkIfFirstSync, syncLocalToFirestore, workoutPlans, history]);
 
   // Processar fila quando voltar online
   useEffect(() => {

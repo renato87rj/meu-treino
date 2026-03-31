@@ -1,5 +1,11 @@
 // Banco de dados de exercícios em PT-BR organizados por grupo muscular
-const exerciseDatabase = [
+
+export interface ExerciseTemplate {
+  name: string;
+  group: string;
+}
+
+const exerciseDatabase: ExerciseTemplate[] = [
   // ── PEITO ──
   { name: 'Supino Reto com Barra', group: 'Peito' },
   { name: 'Supino Reto com Halteres', group: 'Peito' },
