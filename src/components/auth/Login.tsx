@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { LogIn, Mail, Lock, Dumbbell, Eye, EyeOff, AlertCircle } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
+import { useToast } from '../../contexts/ToastContext';
 
 export default function Login() {
   const [email, setEmail] = useState('');
@@ -16,6 +17,7 @@ export default function Login() {
   const [showResetPassword, setShowResetPassword] = useState(false);
 
   const { user, loading: authLoading, firebaseError, signIn, signUp, resetPassword, signInWithGoogle } = useAuth();
+  const { showToast } = useToast();
   const router = useRouter();
 
   useEffect(() => {
@@ -45,8 +47,7 @@ export default function Login() {
       }
 
       if (result.success) {
-        // Login bem-sucedido - o useEffect vai redirecionar automaticamente
-        // Limpar campos
+        showToast(isSignUp ? 'Conta criada com sucesso!' : 'Login realizado!', 'success');
         setEmail('');
         setPassword('');
       } else {
@@ -76,7 +77,7 @@ export default function Login() {
     try {
       const result = await signInWithGoogle();
       if (result.success) {
-        // Login bem-sucedido - o useEffect vai redirecionar automaticamente
+        showToast('Login com Google realizado!', 'success');
       } else {
         setError(result.error || 'Erro ao fazer login com Google.');
       }
@@ -96,6 +97,7 @@ export default function Login() {
       const result = await resetPassword(email);
       if (result.success) {
         setResetEmailSent(true);
+        showToast('Email de recuperação enviado!', 'success');
       } else {
         const errorMessages: Record<string, string> = {
           'auth/user-not-found': 'Usuário não encontrado.',

@@ -4,6 +4,7 @@ import React from 'react';
 import { useRouter } from 'next/navigation';
 import { LogOut } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
+import { useToast } from '../../contexts/ToastContext';
 
 import type { WorkoutPlan } from '../../types/workout';
 
@@ -25,10 +26,12 @@ export default function Header({
   isOnline,
 }: Props) {
   const { logout } = useAuth();
+  const { showToast } = useToast();
   const router = useRouter();
 
   const handleLogout = async () => {
     await logout();
+    showToast('Logout realizado', 'info');
     router.push('/login');
   };
 

@@ -1,6 +1,8 @@
 import { useCallback } from 'react';
 import type { WorkoutPlan, Exercise } from '../types/workout';
 import type { MutableRefObject } from 'react';
+import { useToast } from '../contexts/ToastContext';
+import { useConfirm } from '../contexts/ConfirmContext';
 
 type IgnoreRef = MutableRefObject<{ plans: boolean; history: boolean }>;
 
@@ -12,10 +14,12 @@ export default function usePlans(
   syncDeletePlan: (planId: number) => void,
   ignoreNextUpdateRef: IgnoreRef
 ) {
+  const { showToast } = useToast();
+  const { confirm } = useConfirm();
 
   const createPlan = useCallback((name: string) => {
     if (!name.trim()) {
-      alert('Digite um nome para a ficha');
+      showToast('Digite um nome para a ficha', 'warning');
       return false;
     }
 
@@ -34,8 +38,9 @@ export default function usePlans(
       syncPlan(plan);
     }
 
+    showToast('Ficha criada com sucesso!', 'success');
     return true;
-  }, [userId, syncPlan, setWorkoutPlans, ignoreNextUpdateRef]);
+  }, [userId, syncPlan, setWorkoutPlans, ignoreNextUpdateRef, showToast]);
 
   const duplicatePlan = useCallback((plan: WorkoutPlan) => {
     const newPlan = {
@@ -56,11 +61,13 @@ export default function usePlans(
       ignoreNextUpdateRef.current.plans = true;
       syncPlan(newPlan);
     }
-  }, [userId, syncPlan, setWorkoutPlans, ignoreNextUpdateRef]);
+
+    showToast('Ficha duplicada com sucesso!', 'success');
+  }, [userId, syncPlan, setWorkoutPlans, ignoreNextUpdateRef, showToast]);
 
   const editPlanName = useCallback((planId: number, newName: string) => {
     if (!newName.trim()) {
-      alert('Digite um nome para a ficha');
+      showToast('Digite um nome para a ficha', 'warning');
       return false;
     }
 
@@ -80,25 +87,34 @@ export default function usePlans(
       syncPlan(plan);
     }
 
+    showToast('Nome da ficha atualizado!', 'success');
     return true;
-  }, [workoutPlans, userId, syncPlan, setWorkoutPlans, ignoreNextUpdateRef]);
+  }, [workoutPlans, userId, syncPlan, setWorkoutPlans, ignoreNextUpdateRef, showToast]);
 
-  const deletePlan = useCallback((planId: number) => {
-    if (confirm('Deletar esta ficha de treino?')) {
-      setWorkoutPlans(prev => prev.filter(plan => plan.id !== planId));
+  const deletePlan = async (planId: number) => {
+    const confirmed = await confirm({
+      title: 'Excluir ficha',
+      message: 'Tem certeza que deseja excluir esta ficha? Essa ação não pode ser desfeita.',
+      confirmLabel: 'Excluir',
+      cancelLabel: 'Cancelar',
+      variant: 'danger'
+    });
 
-      if (userId) {
-        syncDeletePlan(planId);
-      }
+    if (!confirmed) return false;
 
-      return true;
+    setWorkoutPlans(prev => prev.filter(plan => plan.id !== planId));
+
+    if (userId) {
+      syncDeletePlan(planId);
     }
-    return false;
-  }, [userId, syncDeletePlan, setWorkoutPlans]);
+
+    showToast('Ficha deletada', 'info');
+    return true;
+  };
 
   const addExercise = useCallback((planId: number, exerciseData: any) => {
     if (!exerciseData.name || !exerciseData.sets || !exerciseData.reps) {
-      alert('Preencha todos os campos');
+      showToast('Preencha todos os campos', 'warning');
       return false;
     }
 
@@ -126,12 +142,13 @@ export default function usePlans(
       syncPlan(plan);
     }
 
+    showToast('Exercício adicionado!', 'success');
     return true;
-  }, [workoutPlans, userId, syncPlan, setWorkoutPlans, ignoreNextUpdateRef]);
+  }, [workoutPlans, userId, syncPlan, setWorkoutPlans, ignoreNextUpdateRef, showToast]);
 
   const editExercise = useCallback((planId: number, exerciseData: any) => {
     if (!exerciseData.name || !exerciseData.sets || !exerciseData.reps) {
-      alert('Preencha todos os campos');
+      showToast('Preencha todos os campos', 'warning');
       return false;
     }
 
@@ -160,31 +177,40 @@ export default function usePlans(
       syncPlan(plan);
     }
 
+    showToast('Exercício atualizado!', 'success');
     return true;
-  }, [workoutPlans, userId, syncPlan, setWorkoutPlans, ignoreNextUpdateRef]);
+  }, [workoutPlans, userId, syncPlan, setWorkoutPlans, ignoreNextUpdateRef, showToast]);
 
-  const deleteExercise = useCallback((planId: number, exerciseId: number | string) => {
-    if (confirm('Remover este exercício da ficha?')) {
-      const updatedPlan = workoutPlans.find(p => p.id === planId);
-      if (!updatedPlan) return false;
+  const deleteExercise = async (planId: number, exerciseId: number | string) => {
+    const confirmed = await confirm({
+      title: 'Remover exercício',
+      message: 'Tem certeza que deseja remover este exercício da ficha?',
+      confirmLabel: 'Remover',
+      cancelLabel: 'Cancelar',
+      variant: 'danger'
+    });
 
-      const plan = {
-        ...updatedPlan,
-        exercises: updatedPlan.exercises.filter(ex => ex.id !== exerciseId),
-        updatedAt: new Date().toISOString()
-      };
+    if (!confirmed) return false;
 
-      setWorkoutPlans(prev => prev.map(p => p.id === planId ? plan : p));
+    const updatedPlan = workoutPlans.find(p => p.id === planId);
+    if (!updatedPlan) return false;
 
-      if (userId) {
-        ignoreNextUpdateRef.current.plans = true;
-        syncPlan(plan);
-      }
+    const plan = {
+      ...updatedPlan,
+      exercises: updatedPlan.exercises.filter(ex => ex.id !== exerciseId),
+      updatedAt: new Date().toISOString()
+    };
 
-      return true;
+    setWorkoutPlans(prev => prev.map(p => p.id === planId ? plan : p));
+
+    if (userId) {
+      ignoreNextUpdateRef.current.plans = true;
+      syncPlan(plan);
     }
-    return false;
-  }, [workoutPlans, userId, syncPlan, setWorkoutPlans, ignoreNextUpdateRef]);
+
+    showToast('Exercício removido', 'info');
+    return true;
+  };
 
   const duplicateExercise = useCallback((planId: number, exercise: Exercise) => {
     const newExercise = {
