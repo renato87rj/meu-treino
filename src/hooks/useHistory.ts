@@ -1,6 +1,17 @@
 import { useCallback } from 'react';
+import type { WorkoutRecord } from '../types/workout';
+import type { MutableRefObject } from 'react';
 
-export default function useHistory(history, setHistory, userId, syncHistory, syncDeleteHistory, ignoreNextUpdateRef) {
+type IgnoreRef = MutableRefObject<{ plans: boolean; history: boolean }>;
+
+export default function useHistory(
+  history: WorkoutRecord[],
+  setHistory: React.Dispatch<React.SetStateAction<WorkoutRecord[]>>,
+  userId: string | null,
+  syncHistory: (record: WorkoutRecord) => void,
+  syncDeleteHistory: (recordId: number) => void,
+  ignoreNextUpdateRef: IgnoreRef
+) {
 
   const getTodayRecords = useCallback((planId) => {
     const today = new Date().toLocaleDateString('pt-BR');

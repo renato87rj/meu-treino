@@ -4,14 +4,15 @@ import usePlans from './usePlans';
 import useHistory from './useHistory';
 import useWorkoutSession from './useWorkoutSession';
 import { hasPendingOperations } from '../utils/syncQueue';
+import type { WorkoutPlan, WorkoutRecord, SetProgressMap, SubstituteExercisesMap } from '../types/workout';
 
-export default function useWorkoutData(userId = null) {
-  const [workoutPlans, setWorkoutPlans] = useState([]);
-  const [history, setHistory] = useState([]);
+export default function useWorkoutData(userId: string | null = null) {
+  const [workoutPlans, setWorkoutPlans] = useState<WorkoutPlan[]>([]);
+  const [history, setHistory] = useState<WorkoutRecord[]>([]);
   const [isOnline, setIsOnline] = useState(typeof navigator !== 'undefined' ? navigator.onLine : true);
   const [isInitialized, setIsInitialized] = useState(false);
-  const [setProgress, setSetProgress] = useState({});
-  const [substituteExercises, setSubstituteExercises] = useState({});
+  const [setProgress, setSetProgress] = useState<SetProgressMap>({});
+  const [substituteExercises, setSubstituteExercises] = useState<SubstituteExercisesMap>({});
 
   const isSyncingRef = useRef(false);
   const lastLocalUpdateRef = useRef(null);
@@ -62,7 +63,7 @@ export default function useWorkoutData(userId = null) {
     undoExercise,
     addSubstituteExercise,
     removeSubstituteExercise,
-  } = useWorkoutSession(setProgress, setSetProgress, substituteExercises, setSubstituteExercises, saveRecord, syncRecord, persistWeightToPlan);
+  } = useWorkoutSession(setProgress, setSetProgress, substituteExercises, setSubstituteExercises, saveRecord, syncRecord, persistWeightToPlan, history, setHistory, userId, syncDeleteHistory);
 
   // Detectar status online/offline
   useEffect(() => {

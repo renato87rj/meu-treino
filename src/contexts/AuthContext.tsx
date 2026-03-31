@@ -1,8 +1,8 @@
 'use client';
 
-import { createContext, useContext, useEffect, useState } from 'react';
-import { 
-  onAuthStateChanged, 
+import { createContext, useContext, useEffect, useState, ReactNode } from 'react';
+import {
+  onAuthStateChanged,
   signInWithEmailAndPassword,
   createUserWithEmailAndPassword,
   signOut,
@@ -11,15 +11,27 @@ import {
   GoogleAuthProvider
 } from 'firebase/auth';
 import { auth } from '../lib/firebase';
+import type { AuthUser, AuthResult } from '../types/auth';
 
-const AuthContext = createContext({});
+interface AuthContextType {
+  user: AuthUser | null;
+  loading: boolean;
+  firebaseError: string | null;
+  signIn: (email: string, password: string) => Promise<AuthResult>;
+  signUp: (email: string, password: string) => Promise<AuthResult>;
+  logout: () => Promise<AuthResult>;
+  resetPassword: (email: string) => Promise<AuthResult>;
+  signInWithGoogle: () => Promise<AuthResult>;
+}
+
+const AuthContext = createContext<AuthContextType>({} as AuthContextType);
 
 export const useAuth = () => useContext(AuthContext);
 
-export const AuthContextProvider = ({ children }) => {
-  const [user, setUser] = useState(null);
+export const AuthContextProvider = ({ children }: { children: ReactNode }) => {
+  const [user, setUser] = useState<AuthUser | null>(null);
   const [loading, setLoading] = useState(true);
-  const [firebaseError, setFirebaseError] = useState(null);
+  const [firebaseError, setFirebaseError] = useState<string | null>(null);
 
   useEffect(() => {
     // Verificar se Firebase está configurado
@@ -49,7 +61,7 @@ export const AuthContextProvider = ({ children }) => {
       });
 
       return () => unsubscribe();
-    } catch (error) {
+    } catch (error: unknown) {
       console.error('Erro ao configurar Firebase Auth:', error);
       setFirebaseError(error.message);
       setLoading(false);
@@ -63,7 +75,7 @@ export const AuthContextProvider = ({ children }) => {
     try {
       const userCredential = await signInWithEmailAndPassword(auth, email, password);
       return { success: true, user: userCredential.user };
-    } catch (error) {
+    } catch (error: unknown) {
       return { success: false, error: error.code || error.message };
     }
   };
@@ -75,7 +87,7 @@ export const AuthContextProvider = ({ children }) => {
     try {
       const userCredential = await createUserWithEmailAndPassword(auth, email, password);
       return { success: true, user: userCredential.user };
-    } catch (error) {
+    } catch (error: unknown) {
       return { success: false, error: error.code || error.message };
     }
   };
@@ -87,7 +99,7 @@ export const AuthContextProvider = ({ children }) => {
     try {
       await signOut(auth);
       return { success: true };
-    } catch (error) {
+    } catch (error: unknown) {
       return { success: false, error: error.message };
     }
   };
@@ -99,7 +111,7 @@ export const AuthContextProvider = ({ children }) => {
     try {
       await sendPasswordResetEmail(auth, email);
       return { success: true };
-    } catch (error) {
+    } catch (error: unknown) {
       return { success: false, error: error.code || error.message };
     }
   };
@@ -112,7 +124,7 @@ export const AuthContextProvider = ({ children }) => {
       const provider = new GoogleAuthProvider();
       const userCredential = await signInWithPopup(auth, provider);
       return { success: true, user: userCredential.user };
-    } catch (error) {
+    } catch (error: unknown) {
       return { success: false, error: error.code || error.message };
     }
   };

@@ -3,13 +3,12 @@
  * Armazena operações pendentes no localStorage e processa quando online
  */
 
+import type { SyncOperation, SyncQueueItem } from '../types/sync';
+
 const SYNC_QUEUE_KEY = 'syncQueue';
 const MAX_RETRIES = 3;
 
-/**
- * Tipos de operações suportadas
- */
-export const SYNC_OPERATIONS = {
+export const SYNC_OPERATIONS: Record<SyncOperation, SyncOperation> = {
   CREATE_PLAN: 'CREATE_PLAN',
   UPDATE_PLAN: 'UPDATE_PLAN',
   DELETE_PLAN: 'DELETE_PLAN',
@@ -20,7 +19,7 @@ export const SYNC_OPERATIONS = {
 /**
  * Obter fila de sincronização do localStorage
  */
-export const getSyncQueue = () => {
+export const getSyncQueue = (): SyncQueueItem[] => {
   try {
     const queue = localStorage.getItem(SYNC_QUEUE_KEY);
     return queue ? JSON.parse(queue) : [];
@@ -33,7 +32,7 @@ export const getSyncQueue = () => {
 /**
  * Salvar fila de sincronização no localStorage
  */
-export const saveSyncQueue = (queue) => {
+export const saveSyncQueue = (queue: SyncQueueItem[]): boolean => {
   try {
     localStorage.setItem(SYNC_QUEUE_KEY, JSON.stringify(queue));
     return true;
@@ -46,7 +45,7 @@ export const saveSyncQueue = (queue) => {
 /**
  * Adicionar operação à fila
  */
-export const addToSyncQueue = (operation, data) => {
+export const addToSyncQueue = (operation: SyncOperation, data: unknown): number => {
   const queue = getSyncQueue();
   const queueItem = {
     id: Date.now() + Math.random(),
@@ -64,7 +63,7 @@ export const addToSyncQueue = (operation, data) => {
 /**
  * Remover operação da fila após sucesso
  */
-export const removeFromSyncQueue = (itemId) => {
+export const removeFromSyncQueue = (itemId: number): void => {
   const queue = getSyncQueue();
   const filtered = queue.filter(item => item.id !== itemId);
   saveSyncQueue(filtered);
@@ -73,7 +72,7 @@ export const removeFromSyncQueue = (itemId) => {
 /**
  * Incrementar tentativas de uma operação
  */
-export const incrementRetry = (itemId) => {
+export const incrementRetry = (itemId: number): void => {
   const queue = getSyncQueue();
   const updated = queue.map(item => {
     if (item.id === itemId) {
@@ -87,7 +86,7 @@ export const incrementRetry = (itemId) => {
 /**
  * Remover operações que excederam o limite de tentativas
  */
-export const removeFailedOperations = () => {
+export const removeFailedOperations = (): number => {
   const queue = getSyncQueue();
   const filtered = queue.filter(item => item.retries < MAX_RETRIES);
   saveSyncQueue(filtered);

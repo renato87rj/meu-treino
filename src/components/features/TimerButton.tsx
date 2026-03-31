@@ -1,18 +1,24 @@
 import React, { useState } from 'react';
 import { Timer, X, Play, Save, Check } from 'lucide-react';
 
-export default function TimerButton({ 
+interface Props {
+  onStartTimer: (seconds: number) => void;
+  defaultTime: number;
+  onSetDefaultTime: (seconds: number) => void;
+}
+
+export default function TimerButton({
   onStartTimer,
   defaultTime,
-  onSetDefaultTime
-}) {
+  onSetDefaultTime,
+}: Props) {
   const [showTimerConfig, setShowTimerConfig] = useState(false);
-  const [customMinutes, setCustomMinutes] = useState(Math.floor(defaultTime / 60));
-  const [customSeconds, setCustomSeconds] = useState(defaultTime % 60);
+  const [customMinutes, setCustomMinutes] = useState<number | string>(Math.floor(defaultTime / 60));
+  const [customSeconds, setCustomSeconds] = useState<number | string>(defaultTime % 60);
   const [saved, setSaved] = useState(false);
 
   const handleStartTimer = () => {
-    const totalSeconds = (parseInt(customMinutes) * 60) + parseInt(customSeconds);
+    const totalSeconds = (parseInt(String(customMinutes)) * 60) + parseInt(String(customSeconds));
     if (totalSeconds > 0) {
       onStartTimer(totalSeconds);
       setShowTimerConfig(false);
@@ -21,14 +27,14 @@ export default function TimerButton({
     }
   };
 
-  const handleQuickTime = (minutes, seconds) => {
+  const handleQuickTime = (minutes: number, seconds: number) => {
     setCustomMinutes(minutes);
     setCustomSeconds(seconds);
     setSaved(false);
   };
 
   const handleSaveDefault = () => {
-    const totalSeconds = (parseInt(customMinutes) * 60) + parseInt(customSeconds);
+    const totalSeconds = (parseInt(String(customMinutes)) * 60) + parseInt(String(customSeconds));
     if (totalSeconds > 0 && onSetDefaultTime) {
       onSetDefaultTime(totalSeconds);
       setSaved(true);

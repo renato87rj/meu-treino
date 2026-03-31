@@ -5,14 +5,25 @@ import { useRouter } from 'next/navigation';
 import { LogOut } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 
-export default function Header({ 
-  view, 
-  selectedPlan, 
+import type { WorkoutPlan } from '../../types/workout';
+
+interface Props {
+  view: string;
+  selectedPlan: WorkoutPlan | null;
+  completedCount: number;
+  totalCount: number;
+  isSyncing: boolean;
+  isOnline: boolean;
+}
+
+export default function Header({
+  view,
+  selectedPlan,
   completedCount,
   totalCount,
   isSyncing,
   isOnline,
-}) {
+}: Props) {
   const { logout } = useAuth();
   const router = useRouter();
 

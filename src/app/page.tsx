@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import type { WorkoutPlan } from '../types/workout';
 
 import InstallPrompt from '../components/ui/InstallPrompt';
 import Header from '../components/ui/Header';
@@ -22,7 +23,7 @@ export default function WorkoutTracker() {
   const { user, loading } = useAuth();
   const router = useRouter();
   const [view, setView] = useState('plans');
-  const [selectedPlan, setSelectedPlan] = useState(null);
+  const [selectedPlan, setSelectedPlan] = useState<WorkoutPlan | null>(null);
   const [showAddPlan, setShowAddPlan] = useState(false);
   const [showAddExercise, setShowAddExercise] = useState(false);
 
@@ -96,16 +97,14 @@ export default function WorkoutTracker() {
   }
 
   const workoutFinished = selectedPlan ? isFinished(selectedPlan.id) : false;
-  const setWorkoutFinished = (finished) => selectedPlan && setFinished(selectedPlan.id, finished);
+  const setWorkoutFinished = (finished: boolean) => selectedPlan && setFinished(selectedPlan.id, finished);
 
-  // Selecionar ficha para treinar
-  const selectPlanForWorkout = (plan) => {
+  const selectPlanForWorkout = (plan: WorkoutPlan) => {
     setSelectedPlan(plan);
     setView('workout');
   };
 
-  // Lidar com mudança de view
-  const handleViewChange = (newView) => {
+  const handleViewChange = (newView: string) => {
     setView(newView);
     if (newView === 'plans') {
       setSelectedPlan(null);
@@ -196,9 +195,9 @@ export default function WorkoutTracker() {
             onUpdateWeight={updateExerciseWeight}
             onCompleteExercise={completeExercise}
             onUndoExercise={undoExercise}
-            substituteExercises={substituteExercises[selectedPlan?.id] || []}
-            onAddSubstitute={(ex) => addSubstituteExercise(selectedPlan.id, ex)}
-            onRemoveSubstitute={(exId) => removeSubstituteExercise(selectedPlan.id, exId)}
+            substituteExercises={substituteExercises[selectedPlan?.id ?? 0] || []}
+            onAddSubstitute={(ex: import('../types/workout').Exercise) => addSubstituteExercise(selectedPlan!.id, ex)}
+            onRemoveSubstitute={(exId: number | string) => removeSubstituteExercise(selectedPlan!.id, exId)}
             onStartRestTimer={startRestTimer}
             onFinishWorkout={() => handleViewChange('plans')}
             workoutFinished={workoutFinished}

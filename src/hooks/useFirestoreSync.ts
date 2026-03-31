@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { 
-  subscribeToWorkoutPlans, 
+import {
+  subscribeToWorkoutPlans,
   subscribeToWorkoutHistory,
   saveWorkoutPlan,
   saveWorkoutHistory,
@@ -19,11 +19,12 @@ import {
   clearSyncQueue,
   SYNC_OPERATIONS
 } from '../utils/syncQueue';
+import type { WorkoutPlan, WorkoutRecord } from '../types/workout';
 
 /**
  * Hook para gerenciar sincronização entre localStorage e Firestore
  */
-export default function useFirestoreSync(userId, isOnline = true) {
+export default function useFirestoreSync(userId: string | null, isOnline: boolean = true) {
   const [isSyncing, setIsSyncing] = useState(false);
   const [syncError, setSyncError] = useState(null);
   const [lastSyncedAt, setLastSyncedAt] = useState(null);
@@ -117,7 +118,7 @@ export default function useFirestoreSync(userId, isOnline = true) {
   /**
    * Sincronizar dados do localStorage para Firestore (upload inicial)
    */
-  const syncLocalToFirestore = useCallback(async (workoutPlans, history) => {
+  const syncLocalToFirestore = useCallback(async (workoutPlans: WorkoutPlan[], history: WorkoutRecord[]) => {
     if (!userId || !isOnline) {
       // Se offline, adicionar à fila
       workoutPlans.forEach(plan => {
@@ -149,7 +150,7 @@ export default function useFirestoreSync(userId, isOnline = true) {
   /**
    * Sincronizar um plano (criar ou atualizar)
    */
-  const syncPlan = useCallback(async (plan) => {
+  const syncPlan = useCallback(async (plan: WorkoutPlan) => {
     if (!userId) return false;
 
     if (!isOnline) {
@@ -172,7 +173,7 @@ export default function useFirestoreSync(userId, isOnline = true) {
   /**
    * Sincronizar deletar plano
    */
-  const syncDeletePlan = useCallback(async (planId) => {
+  const syncDeletePlan = useCallback(async (planId: number) => {
     if (!userId) return false;
 
     if (!isOnline) {
@@ -195,7 +196,7 @@ export default function useFirestoreSync(userId, isOnline = true) {
   /**
    * Sincronizar registro de histórico
    */
-  const syncHistory = useCallback(async (record) => {
+  const syncHistory = useCallback(async (record: WorkoutRecord) => {
     if (!userId) return false;
 
     if (!isOnline) {
@@ -218,7 +219,7 @@ export default function useFirestoreSync(userId, isOnline = true) {
   /**
    * Sincronizar deletar histórico
    */
-  const syncDeleteHistory = useCallback(async (recordId) => {
+  const syncDeleteHistory = useCallback(async (recordId: number) => {
     if (!userId) return false;
 
     if (!isOnline) {
@@ -241,7 +242,7 @@ export default function useFirestoreSync(userId, isOnline = true) {
   /**
    * Configurar listeners em tempo real
    */
-  const setupRealtimeListeners = useCallback((onPlansUpdate, onHistoryUpdate) => {
+  const setupRealtimeListeners = useCallback((onPlansUpdate: (plans: WorkoutPlan[]) => void, onHistoryUpdate: (history: WorkoutRecord[]) => void) => {
     if (!userId) return;
 
     // Limpar listeners anteriores

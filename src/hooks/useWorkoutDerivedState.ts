@@ -1,6 +1,12 @@
 import { useMemo } from 'react';
+import type { WorkoutPlan, WorkoutRecord } from '../types/workout';
 
-export default function useWorkoutDerivedState(view, selectedPlan, history, getTodayRecords) {
+export default function useWorkoutDerivedState(
+  view: string,
+  selectedPlan: WorkoutPlan | null,
+  history: WorkoutRecord[],
+  getTodayRecords: (planId: number) => WorkoutRecord[]
+) {
   const todayRecords = useMemo(() => {
     if (view !== 'workout' || !selectedPlan) return [];
     return getTodayRecords(selectedPlan.id);

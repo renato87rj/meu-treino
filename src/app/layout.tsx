@@ -1,3 +1,4 @@
+import { ReactNode } from 'react';
 import "./globals.css";
 import Providers from '../components/ui/Providers';
 
@@ -14,7 +15,7 @@ export const viewport = {
   themeColor: '#9333ea',
 }
 
-export default function RootLayout({ children }) {
+export default function RootLayout({ children }: { children: ReactNode }) {
   return (
     <html lang="pt-BR">
       <body>

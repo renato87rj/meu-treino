@@ -1,6 +1,19 @@
 import { useCallback } from 'react';
+import type { WorkoutPlan, Exercise, WorkoutRecord, SetProgressMap, SubstituteExercisesMap } from '../types/workout';
 
-export default function useWorkoutSession(setProgress, setSetProgress, substituteExercises, setSubstituteExercises, saveRecord, syncRecord, persistWeightToPlan) {
+export default function useWorkoutSession(
+  setProgress: SetProgressMap,
+  setSetProgress: React.Dispatch<React.SetStateAction<SetProgressMap>>,
+  substituteExercises: SubstituteExercisesMap,
+  setSubstituteExercises: React.Dispatch<React.SetStateAction<SubstituteExercisesMap>>,
+  saveRecord: (record: WorkoutRecord) => WorkoutRecord,
+  syncRecord: (record: WorkoutRecord) => void,
+  persistWeightToPlan: (planId: number, exerciseId: number, weight: number | string) => void,
+  history: WorkoutRecord[],
+  setHistory: React.Dispatch<React.SetStateAction<WorkoutRecord[]>>,
+  userId: string | null,
+  syncDeleteHistory: (recordId: number) => void
+) {
 
   const updateExerciseWeight = useCallback((exerciseId, weight) => {
     setSetProgress(prev => ({
@@ -41,7 +54,7 @@ export default function useWorkoutSession(setProgress, setSetProgress, substitut
     return reps;
   }, [setProgress, setSetProgress]);
 
-  const completeExercise = useCallback((plan, exercise, setsData = []) => {
+  const completeExercise = useCallback((plan: WorkoutPlan, exercise: Exercise, setsData: (string | null)[] = []) => {
     const exerciseId = exercise.id;
     const current = setProgress[exerciseId] || { weight: exercise.weight, sets: [] };
 
@@ -90,7 +103,7 @@ export default function useWorkoutSession(setProgress, setSetProgress, substitut
     return true;
   }, [setProgress, setSetProgress, saveRecord, syncRecord, persistWeightToPlan]);
 
-  const undoExercise = useCallback((plan, exercise, history, setHistory, userId, syncDeleteHistory) => {
+  const undoExercise = useCallback((plan: WorkoutPlan, exercise: Exercise) => {
     const today = new Date().toLocaleDateString('pt-BR');
     const existingRecord = history.find(record => {
       const recordDate = new Date(record.date).toLocaleDateString('pt-BR');
@@ -113,7 +126,7 @@ export default function useWorkoutSession(setProgress, setSetProgress, substitut
     if (userId) {
       syncDeleteHistory(existingRecord.id);
     }
-  }, [setSetProgress]);
+  }, [history, setHistory, userId, syncDeleteHistory, setSetProgress]);
 
   const addSubstituteExercise = useCallback((planId, exercise) => {
     setSubstituteExercises(prev => ({

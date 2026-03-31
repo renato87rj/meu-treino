@@ -1,6 +1,17 @@
 import { useCallback } from 'react';
+import type { WorkoutPlan, Exercise } from '../types/workout';
+import type { MutableRefObject } from 'react';
 
-export default function usePlans(workoutPlans, setWorkoutPlans, userId, syncPlan, syncDeletePlan, ignoreNextUpdateRef) {
+type IgnoreRef = MutableRefObject<{ plans: boolean; history: boolean }>;
+
+export default function usePlans(
+  workoutPlans: WorkoutPlan[],
+  setWorkoutPlans: React.Dispatch<React.SetStateAction<WorkoutPlan[]>>,
+  userId: string | null,
+  syncPlan: (plan: WorkoutPlan) => void,
+  syncDeletePlan: (planId: number) => void,
+  ignoreNextUpdateRef: IgnoreRef
+) {
 
   const createPlan = useCallback((name) => {
     if (!name.trim()) {

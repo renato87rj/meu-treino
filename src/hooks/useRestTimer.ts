@@ -117,7 +117,7 @@ export default function useRestTimer(defaultRestTime = 90) {
   }, [timerRunning, syncFromEndTime]);
 
   // Iniciar timer de descanso
-  const startRestTimer = useCallback((customSeconds = null) => {
+  const startRestTimer = useCallback((customSeconds: number | null = null) => {
     const timeToUse = customSeconds !== null ? customSeconds : defaultTime;
     endTimeRef.current = Date.now() + timeToUse * 1000;
     pausedLeftRef.current = null;
@@ -173,7 +173,7 @@ export default function useRestTimer(defaultRestTime = 90) {
   };
 
   // Setar tempo customizado
-  const setCustomTime = useCallback((seconds) => {
+  const setCustomTime = useCallback((seconds: number) => {
     endTimeRef.current = Date.now() + seconds * 1000;
     pausedLeftRef.current = null;
     setTimerSeconds(seconds);
@@ -182,7 +182,7 @@ export default function useRestTimer(defaultRestTime = 90) {
   }, []);
 
   // Alterar tempo padrão e persistir
-  const setDefaultRestTime = useCallback((seconds) => {
+  const setDefaultRestTime = useCallback((seconds: number) => {
     setDefaultTime(seconds);
     if (typeof window !== 'undefined') {
       localStorage.setItem('restTimerDefault', String(seconds));
@@ -190,7 +190,7 @@ export default function useRestTimer(defaultRestTime = 90) {
   }, []);
 
   // Formatar tempo para exibição
-  const formatTime = (seconds) => {
+  const formatTime = (seconds: number): string => {
     const mins = Math.floor(seconds / 60);
     const secs = seconds % 60;
     return `${mins}:${secs.toString().padStart(2, '0')}`;
