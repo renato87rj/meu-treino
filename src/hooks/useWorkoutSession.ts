@@ -8,30 +8,30 @@ export default function useWorkoutSession(
   setSubstituteExercises: React.Dispatch<React.SetStateAction<SubstituteExercisesMap>>,
   saveRecord: (record: WorkoutRecord) => WorkoutRecord,
   syncRecord: (record: WorkoutRecord) => void,
-  persistWeightToPlan: (planId: number, exerciseId: number, weight: number | string) => void,
+  persistWeightToPlan: (planId: number, exerciseId: number | string, weight: number | string | null) => void,
   history: WorkoutRecord[],
   setHistory: React.Dispatch<React.SetStateAction<WorkoutRecord[]>>,
   userId: string | null,
   syncDeleteHistory: (recordId: number) => void
 ) {
 
-  const updateExerciseWeight = useCallback((exerciseId, weight) => {
+  const updateExerciseWeight = useCallback((exerciseId: number | string, weight: number | string) => {
     setSetProgress(prev => ({
       ...prev,
       [exerciseId]: {
         ...prev[exerciseId],
-        weight: weight === '' ? '' : parseFloat(weight) || 0,
+        weight: weight === '' ? '' : String(parseFloat(String(weight)) || 0),
         sets: prev[exerciseId]?.sets || []
       }
     }));
   }, [setSetProgress]);
 
-  const confirmSet = useCallback((plan, exercise, setIndex, reps) => {
+  const confirmSet = useCallback((plan: WorkoutPlan, exercise: Exercise, setIndex: number, reps: string | number | null) => {
     const exerciseId = exercise.id;
     const current = setProgress[exerciseId] || { weight: exercise.weight, sets: [] };
 
     const updatedSets = [...current.sets];
-    updatedSets[setIndex] = { reps: reps != null && reps !== '' ? (parseInt(reps) || 0) : null };
+    updatedSets[setIndex] = { reps: reps != null && reps !== '' ? (parseInt(String(reps)) || 0) : null };
 
     setSetProgress(prev => ({
       ...prev,
@@ -40,7 +40,7 @@ export default function useWorkoutSession(
     return false;
   }, [setProgress, setSetProgress]);
 
-  const unconfirmSet = useCallback((exerciseId, setIndex) => {
+  const unconfirmSet = useCallback((exerciseId: number | string, setIndex: number) => {
     const current = setProgress[exerciseId];
     if (!current) return null;
     const reps = current.sets[setIndex]?.reps;
@@ -65,16 +65,16 @@ export default function useWorkoutSession(
       return { reps };
     });
 
-    const record = {
+    const record: WorkoutRecord = {
       id: Date.now(),
       planId: plan.id,
       planName: plan.name,
-      exerciseId: exercise.id,
+      exerciseId: typeof exercise.id === 'number' ? exercise.id : parseInt(String(exercise.id)),
       exerciseName: exercise.name,
       plannedSets: exercise.sets,
       plannedReps: exercise.reps,
       plannedWeight: exercise.weight,
-      weight: current.weight ?? exercise.weight,
+      weight: typeof current.weight === 'number' ? current.weight : (current.weight === '' ? null : parseFloat(current.weight)) ?? exercise.weight,
       completedSets,
       completed: true,
       ...(exercise._substitute && {
@@ -118,7 +118,7 @@ export default function useWorkoutSession(
     setSetProgress(prev => ({
       ...prev,
       [exercise.id]: {
-        weight: existingRecord.weight ?? exercise.weight,
+        weight: String(existingRecord.weight ?? exercise.weight ?? 0),
         sets: []
       }
     }));
@@ -128,14 +128,14 @@ export default function useWorkoutSession(
     }
   }, [history, setHistory, userId, syncDeleteHistory, setSetProgress]);
 
-  const addSubstituteExercise = useCallback((planId, exercise) => {
+  const addSubstituteExercise = useCallback((planId: number | string, exercise: Exercise) => {
     setSubstituteExercises(prev => ({
       ...prev,
       [planId]: [...(prev[planId] || []), exercise]
     }));
   }, [setSubstituteExercises]);
 
-  const removeSubstituteExercise = useCallback((planId, exerciseId) => {
+  const removeSubstituteExercise = useCallback((planId: number | string, exerciseId: number | string) => {
     setSubstituteExercises(prev => ({
       ...prev,
       [planId]: (prev[planId] || []).filter(e => e.id !== exerciseId)

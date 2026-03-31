@@ -13,7 +13,7 @@ export default function usePlans(
   ignoreNextUpdateRef: IgnoreRef
 ) {
 
-  const createPlan = useCallback((name) => {
+  const createPlan = useCallback((name: string) => {
     if (!name.trim()) {
       alert('Digite um nome para a ficha');
       return false;
@@ -37,7 +37,7 @@ export default function usePlans(
     return true;
   }, [userId, syncPlan, setWorkoutPlans, ignoreNextUpdateRef]);
 
-  const duplicatePlan = useCallback((plan) => {
+  const duplicatePlan = useCallback((plan: WorkoutPlan) => {
     const newPlan = {
       ...plan,
       id: Date.now(),
@@ -58,7 +58,7 @@ export default function usePlans(
     }
   }, [userId, syncPlan, setWorkoutPlans, ignoreNextUpdateRef]);
 
-  const editPlanName = useCallback((planId, newName) => {
+  const editPlanName = useCallback((planId: number, newName: string) => {
     if (!newName.trim()) {
       alert('Digite um nome para a ficha');
       return false;
@@ -83,7 +83,7 @@ export default function usePlans(
     return true;
   }, [workoutPlans, userId, syncPlan, setWorkoutPlans, ignoreNextUpdateRef]);
 
-  const deletePlan = useCallback((planId) => {
+  const deletePlan = useCallback((planId: number) => {
     if (confirm('Deletar esta ficha de treino?')) {
       setWorkoutPlans(prev => prev.filter(plan => plan.id !== planId));
 
@@ -96,7 +96,7 @@ export default function usePlans(
     return false;
   }, [userId, syncDeletePlan, setWorkoutPlans]);
 
-  const addExercise = useCallback((planId, exerciseData) => {
+  const addExercise = useCallback((planId: number, exerciseData: any) => {
     if (!exerciseData.name || !exerciseData.sets || !exerciseData.reps) {
       alert('Preencha todos os campos');
       return false;
@@ -129,7 +129,7 @@ export default function usePlans(
     return true;
   }, [workoutPlans, userId, syncPlan, setWorkoutPlans, ignoreNextUpdateRef]);
 
-  const editExercise = useCallback((planId, exerciseData) => {
+  const editExercise = useCallback((planId: number, exerciseData: any) => {
     if (!exerciseData.name || !exerciseData.sets || !exerciseData.reps) {
       alert('Preencha todos os campos');
       return false;
@@ -163,7 +163,7 @@ export default function usePlans(
     return true;
   }, [workoutPlans, userId, syncPlan, setWorkoutPlans, ignoreNextUpdateRef]);
 
-  const deleteExercise = useCallback((planId, exerciseId) => {
+  const deleteExercise = useCallback((planId: number, exerciseId: number | string) => {
     if (confirm('Remover este exercício da ficha?')) {
       const updatedPlan = workoutPlans.find(p => p.id === planId);
       if (!updatedPlan) return false;
@@ -186,7 +186,7 @@ export default function usePlans(
     return false;
   }, [workoutPlans, userId, syncPlan, setWorkoutPlans, ignoreNextUpdateRef]);
 
-  const duplicateExercise = useCallback((planId, exercise) => {
+  const duplicateExercise = useCallback((planId: number, exercise: Exercise) => {
     const newExercise = {
       ...exercise,
       id: Date.now(),
@@ -210,7 +210,7 @@ export default function usePlans(
     }
   }, [workoutPlans, userId, syncPlan, setWorkoutPlans, ignoreNextUpdateRef]);
 
-  const moveExercise = useCallback((planId, exerciseId, direction) => {
+  const moveExercise = useCallback((planId: number, exerciseId: number | string, direction: string) => {
     const updatedPlan = workoutPlans.find(p => p.id === planId);
     if (!updatedPlan) return;
 
@@ -236,9 +236,9 @@ export default function usePlans(
     }
   }, [workoutPlans, userId, syncPlan, setWorkoutPlans, ignoreNextUpdateRef]);
 
-  const persistWeightToPlan = useCallback((planId, exerciseId, newWeight) => {
+  const persistWeightToPlan = useCallback((planId: number, exerciseId: number | string, newWeight: number | string | null) => {
     if (newWeight == null || newWeight === '') return;
-    const numWeight = parseFloat(newWeight);
+    const numWeight = parseFloat(String(newWeight));
     if (isNaN(numWeight)) return;
 
     const targetPlan = workoutPlans.find(p => p.id === planId);

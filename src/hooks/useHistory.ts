@@ -13,7 +13,7 @@ export default function useHistory(
   ignoreNextUpdateRef: IgnoreRef
 ) {
 
-  const getTodayRecords = useCallback((planId) => {
+  const getTodayRecords = useCallback((planId: string | number) => {
     const today = new Date().toLocaleDateString('pt-BR');
     return history.filter(record => {
       const recordDate = new Date(record.date).toLocaleDateString('pt-BR');
@@ -21,7 +21,7 @@ export default function useHistory(
     });
   }, [history]);
 
-  const removeRecord = useCallback((recordId) => {
+  const removeRecord = useCallback((recordId: number) => {
     setHistory(prev => prev.filter(r => r.id !== recordId));
 
     if (userId) {
@@ -39,10 +39,10 @@ export default function useHistory(
       }
       groups[date].push(record);
       return groups;
-    }, {});
+    }, {} as Record<string, WorkoutRecord[]>);
   }, [history]);
 
-  const saveRecord = useCallback((record) => {
+  const saveRecord = useCallback((record: WorkoutRecord) => {
     const today = new Date().toLocaleDateString('pt-BR');
     const existingIdx = history.findIndex(r => {
       const d = new Date(r.date).toLocaleDateString('pt-BR');
@@ -63,7 +63,7 @@ export default function useHistory(
     }
   }, [history, setHistory]);
 
-  const syncRecord = useCallback((record) => {
+  const syncRecord = useCallback((record: WorkoutRecord) => {
     if (userId) {
       ignoreNextUpdateRef.current.history = true;
       syncHistory(record);

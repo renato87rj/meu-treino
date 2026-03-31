@@ -62,7 +62,7 @@ export default function Login() {
         };
         setError(errorMessages[result.error ?? ''] || result.error || 'Ocorreu um erro. Tente novamente.');
       }
-    } catch (err) {
+    } catch (err: unknown) {
       setError('Ocorreu um erro inesperado. Tente novamente.');
     } finally {
       setLoading(false);
@@ -80,7 +80,7 @@ export default function Login() {
       } else {
         setError(result.error || 'Erro ao fazer login com Google.');
       }
-    } catch (err) {
+    } catch (err: unknown) {
       setError('Erro ao fazer login com Google.');
     } finally {
       setLoading(false);
@@ -103,7 +103,7 @@ export default function Login() {
         };
         setError(errorMessages[result.error ?? ''] || result.error || 'Erro ao enviar email de recuperação.');
       }
-    } catch (err) {
+    } catch (err: unknown) {
       setError('Erro ao enviar email de recuperação.');
     } finally {
       setLoading(false);

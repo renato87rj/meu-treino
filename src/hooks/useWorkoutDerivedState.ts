@@ -24,7 +24,7 @@ export default function useWorkoutDerivedState(
       .filter(r => new Date(r.date).toLocaleDateString('pt-BR') !== today)
       .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 
-    const map = {};
+    const map: Record<string, WorkoutRecord> = {};
     for (const r of entries) {
       if (!r?.exerciseName) continue;
       if (!map[r.exerciseName]) map[r.exerciseName] = r;

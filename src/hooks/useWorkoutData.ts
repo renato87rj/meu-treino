@@ -15,7 +15,7 @@ export default function useWorkoutData(userId: string | null = null) {
   const [substituteExercises, setSubstituteExercises] = useState<SubstituteExercisesMap>({});
 
   const isSyncingRef = useRef(false);
-  const lastLocalUpdateRef = useRef(null);
+  const lastLocalUpdateRef = useRef<string | null>(null);
   const ignoreNextUpdateRef = useRef({ plans: false, history: false });
 
   const {
@@ -142,14 +142,14 @@ export default function useWorkoutData(userId: string | null = null) {
   useEffect(() => {
     if (!userId || !isInitialized) return;
 
-    const handlePlansUpdate = (plans) => {
+    const handlePlansUpdate = (plans: WorkoutPlan[]) => {
       if (plans && Array.isArray(plans)) {
         if (ignoreNextUpdateRef.current.plans) {
           ignoreNextUpdateRef.current.plans = false;
           return;
         }
 
-        const normalizedPlans = plans.map(plan => ({
+        const normalizedPlans = plans.map((plan: any) => ({
           ...plan,
           createdAt: plan.createdAt?.toDate?.()?.toISOString() || plan.createdAt,
           updatedAt: plan.updatedAt?.toDate?.()?.toISOString() || plan.updatedAt
@@ -159,14 +159,14 @@ export default function useWorkoutData(userId: string | null = null) {
       }
     };
 
-    const handleHistoryUpdate = (historyData) => {
+    const handleHistoryUpdate = (historyData: WorkoutRecord[]) => {
       if (historyData && Array.isArray(historyData)) {
         if (ignoreNextUpdateRef.current.history) {
           ignoreNextUpdateRef.current.history = false;
           return;
         }
 
-        const normalizedHistory = historyData.map(record => ({
+        const normalizedHistory = historyData.map((record: any) => ({
           ...record,
           date: record.date?.toDate?.()?.toISOString() || record.date,
           createdAt: record.createdAt?.toDate?.()?.toISOString() || record.createdAt,

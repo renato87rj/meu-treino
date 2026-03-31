@@ -26,12 +26,12 @@ import type { WorkoutPlan, WorkoutRecord } from '../types/workout';
  */
 export default function useFirestoreSync(userId: string | null, isOnline: boolean = true) {
   const [isSyncing, setIsSyncing] = useState(false);
-  const [syncError, setSyncError] = useState(null);
-  const [lastSyncedAt, setLastSyncedAt] = useState(null);
+  const [syncError, setSyncError] = useState<string | null>(null);
+  const [lastSyncedAt, setLastSyncedAt] = useState<string | null>(null);
   const [isInitialSync, setIsInitialSync] = useState(false);
   
-  const plansUnsubscribeRef = useRef(null);
-  const historyUnsubscribeRef = useRef(null);
+  const plansUnsubscribeRef = useRef<(() => void) | null>(null);
+  const historyUnsubscribeRef = useRef<(() => void) | null>(null);
   const isProcessingQueueRef = useRef(false);
 
   /**
@@ -42,7 +42,7 @@ export default function useFirestoreSync(userId: string | null, isOnline: boolea
     try {
       const plans = await loadWorkoutPlans(userId);
       return plans.length === 0;
-    } catch (error) {
+    } catch (error: unknown) {
       console.error('Erro ao verificar primeira sincronização:', error);
       return false;
     }
@@ -67,22 +67,22 @@ export default function useFirestoreSync(userId: string | null, isOnline: boolea
           switch (item.operation) {
             case SYNC_OPERATIONS.CREATE_PLAN:
             case SYNC_OPERATIONS.UPDATE_PLAN:
-              await saveWorkoutPlan(userId, item.data);
+              await saveWorkoutPlan(userId, item.data as WorkoutPlan);
               removeFromSyncQueue(item.id);
               break;
             
             case SYNC_OPERATIONS.DELETE_PLAN:
-              await deleteWorkoutPlan(userId, item.data.id);
+              await deleteWorkoutPlan(userId, String((item.data as { id: string | number }).id));
               removeFromSyncQueue(item.id);
               break;
             
             case SYNC_OPERATIONS.CREATE_HISTORY:
-              await saveWorkoutHistory(userId, item.data);
+              await saveWorkoutHistory(userId, item.data as WorkoutRecord);
               removeFromSyncQueue(item.id);
               break;
             
             case SYNC_OPERATIONS.DELETE_HISTORY:
-              await deleteWorkoutHistory(userId, item.data.id);
+              await deleteWorkoutHistory(userId, (item.data as { id: string }).id);
               removeFromSyncQueue(item.id);
               break;
             
@@ -90,7 +90,7 @@ export default function useFirestoreSync(userId: string | null, isOnline: boolea
               console.warn('Operação desconhecida na fila:', item.operation);
               removeFromSyncQueue(item.id);
           }
-        } catch (error) {
+        } catch (error: unknown) {
           console.error(`Erro ao processar item da fila ${item.id}:`, error);
           incrementRetry(item.id);
           
@@ -106,9 +106,9 @@ export default function useFirestoreSync(userId: string | null, isOnline: boolea
       removeFailedOperations();
       
       setLastSyncedAt(new Date().toISOString());
-    } catch (error) {
+    } catch (error: unknown) {
       console.error('Erro ao processar fila de sincronização:', error);
-      setSyncError(error.message);
+      setSyncError(error instanceof Error ? error.message : String(error));
     } finally {
       setIsSyncing(false);
       isProcessingQueueRef.current = false;
@@ -138,9 +138,9 @@ export default function useFirestoreSync(userId: string | null, isOnline: boolea
       setLastSyncedAt(new Date().toISOString());
       setIsInitialSync(true);
       return true;
-    } catch (error) {
+    } catch (error: unknown) {
       console.error('Erro ao sincronizar dados locais:', error);
-      setSyncError(error.message);
+      setSyncError(error instanceof Error ? error.message : String(error));
       return false;
     } finally {
       setIsSyncing(false);
@@ -162,10 +162,10 @@ export default function useFirestoreSync(userId: string | null, isOnline: boolea
       await saveWorkoutPlan(userId, plan);
       setLastSyncedAt(new Date().toISOString());
       return true;
-    } catch (error) {
+    } catch (error: unknown) {
       console.error('Erro ao sincronizar plano:', error);
       addToSyncQueue(SYNC_OPERATIONS.UPDATE_PLAN, plan);
-      setSyncError(error.message);
+      setSyncError(error instanceof Error ? error.message : String(error));
       return false;
     }
   }, [userId, isOnline]);
@@ -173,7 +173,7 @@ export default function useFirestoreSync(userId: string | null, isOnline: boolea
   /**
    * Sincronizar deletar plano
    */
-  const syncDeletePlan = useCallback(async (planId: number) => {
+  const syncDeletePlan = useCallback(async (planId: string | number) => {
     if (!userId) return false;
 
     if (!isOnline) {
@@ -182,13 +182,13 @@ export default function useFirestoreSync(userId: string | null, isOnline: boolea
     }
 
     try {
-      await deleteWorkoutPlan(userId, planId);
+      await deleteWorkoutPlan(userId, String(planId));
       setLastSyncedAt(new Date().toISOString());
       return true;
-    } catch (error) {
+    } catch (error: unknown) {
       console.error('Erro ao deletar plano:', error);
       addToSyncQueue(SYNC_OPERATIONS.DELETE_PLAN, { id: planId });
-      setSyncError(error.message);
+      setSyncError(error instanceof Error ? error.message : String(error));
       return false;
     }
   }, [userId, isOnline]);
@@ -208,10 +208,10 @@ export default function useFirestoreSync(userId: string | null, isOnline: boolea
       await saveWorkoutHistory(userId, record);
       setLastSyncedAt(new Date().toISOString());
       return true;
-    } catch (error) {
+    } catch (error: unknown) {
       console.error('Erro ao sincronizar histórico:', error);
       addToSyncQueue(SYNC_OPERATIONS.CREATE_HISTORY, record);
-      setSyncError(error.message);
+      setSyncError(error instanceof Error ? error.message : String(error));
       return false;
     }
   }, [userId, isOnline]);
@@ -228,13 +228,13 @@ export default function useFirestoreSync(userId: string | null, isOnline: boolea
     }
 
     try {
-      await deleteWorkoutHistory(userId, recordId);
+      await deleteWorkoutHistory(userId, String(recordId));
       setLastSyncedAt(new Date().toISOString());
       return true;
-    } catch (error) {
+    } catch (error: unknown) {
       console.error('Erro ao deletar histórico:', error);
       addToSyncQueue(SYNC_OPERATIONS.DELETE_HISTORY, { id: recordId });
-      setSyncError(error.message);
+      setSyncError(error instanceof Error ? error.message : String(error));
       return false;
     }
   }, [userId, isOnline]);
@@ -257,7 +257,7 @@ export default function useFirestoreSync(userId: string | null, isOnline: boolea
     plansUnsubscribeRef.current = subscribeToWorkoutPlans(userId, (plans, error) => {
       if (error) {
         console.error('Erro no listener de planos:', error);
-        setSyncError(error.message);
+        setSyncError(error instanceof Error ? error.message : String(error));
         return;
       }
       if (onPlansUpdate && plans) {
@@ -268,7 +268,7 @@ export default function useFirestoreSync(userId: string | null, isOnline: boolea
     historyUnsubscribeRef.current = subscribeToWorkoutHistory(userId, (history, error) => {
       if (error) {
         console.error('Erro no listener de histórico:', error);
-        setSyncError(error.message);
+        setSyncError(error instanceof Error ? error.message : String(error));
         return;
       }
       if (onHistoryUpdate && history) {

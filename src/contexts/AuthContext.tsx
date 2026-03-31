@@ -28,6 +28,18 @@ const AuthContext = createContext<AuthContextType>({} as AuthContextType);
 
 export const useAuth = () => useContext(AuthContext);
 
+function getErrorMessage(error: unknown): string {
+  if (error instanceof Error) return error.message;
+  return String(error);
+}
+
+function getFirebaseErrorCode(error: unknown): string | undefined {
+  if (typeof error === 'object' && error !== null && 'code' in error) {
+    return String(error.code);
+  }
+  return undefined;
+}
+
 export const AuthContextProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<AuthUser | null>(null);
   const [loading, setLoading] = useState(true);
@@ -63,12 +75,12 @@ export const AuthContextProvider = ({ children }: { children: ReactNode }) => {
       return () => unsubscribe();
     } catch (error: unknown) {
       console.error('Erro ao configurar Firebase Auth:', error);
-      setFirebaseError(error.message);
+      setFirebaseError(getErrorMessage(error));
       setLoading(false);
     }
   }, []);
 
-  const signIn = async (email, password) => {
+  const signIn = async (email: string, password: string) => {
     if (!auth) {
       return { success: false, error: 'Firebase não está configurado' };
     }
@@ -76,11 +88,11 @@ export const AuthContextProvider = ({ children }: { children: ReactNode }) => {
       const userCredential = await signInWithEmailAndPassword(auth, email, password);
       return { success: true, user: userCredential.user };
     } catch (error: unknown) {
-      return { success: false, error: error.code || error.message };
+      return { success: false, error: getFirebaseErrorCode(error) || getErrorMessage(error) };
     }
   };
 
-  const signUp = async (email, password) => {
+  const signUp = async (email: string, password: string) => {
     if (!auth) {
       return { success: false, error: 'Firebase não está configurado' };
     }
@@ -88,7 +100,7 @@ export const AuthContextProvider = ({ children }: { children: ReactNode }) => {
       const userCredential = await createUserWithEmailAndPassword(auth, email, password);
       return { success: true, user: userCredential.user };
     } catch (error: unknown) {
-      return { success: false, error: error.code || error.message };
+      return { success: false, error: getFirebaseErrorCode(error) || getErrorMessage(error) };
     }
   };
 
@@ -100,11 +112,11 @@ export const AuthContextProvider = ({ children }: { children: ReactNode }) => {
       await signOut(auth);
       return { success: true };
     } catch (error: unknown) {
-      return { success: false, error: error.message };
+      return { success: false, error: getErrorMessage(error) };
     }
   };
 
-  const resetPassword = async (email) => {
+  const resetPassword = async (email: string) => {
     if (!auth) {
       return { success: false, error: 'Firebase não está configurado' };
     }
@@ -112,7 +124,7 @@ export const AuthContextProvider = ({ children }: { children: ReactNode }) => {
       await sendPasswordResetEmail(auth, email);
       return { success: true };
     } catch (error: unknown) {
-      return { success: false, error: error.code || error.message };
+      return { success: false, error: getFirebaseErrorCode(error) || getErrorMessage(error) };
     }
   };
 
@@ -125,7 +137,7 @@ export const AuthContextProvider = ({ children }: { children: ReactNode }) => {
       const userCredential = await signInWithPopup(auth, provider);
       return { success: true, user: userCredential.user };
     } catch (error: unknown) {
-      return { success: false, error: error.code || error.message };
+      return { success: false, error: getFirebaseErrorCode(error) || getErrorMessage(error) };
     }
   };
 

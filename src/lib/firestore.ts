@@ -44,7 +44,7 @@ export const loadWorkoutPlans = async (userId: string): Promise<WorkoutPlan[]> =
     return snapshot.docs.map(doc => ({
       id: doc.id,
       ...doc.data()
-    }));
+    } as unknown as WorkoutPlan));
   } catch (error) {
     console.error('Erro ao carregar planos:', error);
     throw error;
@@ -61,7 +61,7 @@ export const loadWorkoutHistory = async (userId: string): Promise<WorkoutRecord[
     return snapshot.docs.map(doc => ({
       id: doc.id,
       ...doc.data()
-    }));
+    } as unknown as WorkoutRecord));
   } catch (error) {
     console.error('Erro ao carregar histórico:', error);
     throw error;
@@ -174,7 +174,7 @@ export const subscribeToWorkoutPlans = (userId: string, callback: (plans: Workou
     const plans = snapshot.docs.map(doc => ({
       id: doc.id,
       ...doc.data()
-    }));
+    } as unknown as WorkoutPlan));
     callback(plans);
   }, (error) => {
     console.error('Erro no listener de planos:', error);
@@ -191,7 +191,7 @@ export const subscribeToWorkoutHistory = (userId: string, callback: (history: Wo
     const history = snapshot.docs.map(doc => ({
       id: doc.id,
       ...doc.data()
-    }));
+    } as unknown as WorkoutRecord));
     callback(history);
   }, (error) => {
     console.error('Erro no listener de histórico:', error);
