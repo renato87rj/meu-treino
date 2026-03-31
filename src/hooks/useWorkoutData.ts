@@ -69,6 +69,7 @@ export default function useWorkoutData(userId: string | null = null) {
   });
 
   const isSyncingRef = useRef(false);
+  const hasMigratedRef = useRef(false);
   const lastLocalUpdateRef = useRef<string | null>(null);
   const ignoreNextUpdateRef = useRef({ plans: false, history: false });
 
@@ -208,20 +209,24 @@ export default function useWorkoutData(userId: string | null = null) {
 
   // Migração inicial: upload de dados locais para Firestore se for primeira vez
   useEffect(() => {
-    if (!userId || !isInitialized || isSyncingRef.current) return;
+    if (!userId || !isInitialized || isSyncingRef.current || hasMigratedRef.current) return;
 
     const migrateData = async () => {
       const isFirstSync = await checkIfFirstSync();
 
-      if (isFirstSync && workoutPlans.length > 0 || history.length > 0) {
+      if (isFirstSync && (workoutPlans.length > 0 || history.length > 0)) {
         isSyncingRef.current = true;
+        hasMigratedRef.current = true;
         await syncLocalToFirestore(workoutPlans, history);
         isSyncingRef.current = false;
+      } else {
+        hasMigratedRef.current = true;
       }
     };
 
     migrateData();
-  }, [userId, isInitialized, checkIfFirstSync, syncLocalToFirestore, workoutPlans, history]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [userId, isInitialized]);
 
   // Processar fila quando voltar online
   useEffect(() => {

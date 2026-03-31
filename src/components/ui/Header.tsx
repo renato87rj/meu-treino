@@ -52,13 +52,6 @@ export default function Header({
 
       {/* Ações à direita */}
       <div className="flex items-center gap-2">
-        {/* Badge de progresso — só na aba Treinar */}
-        {view === 'workout' && selectedPlan && (
-          <span className="text-[11px] font-semibold text-purple-300 bg-purple-500/15 border border-purple-500/25 px-3 py-1 rounded-full">
-            {completedCount}/{totalCount} feitos
-          </span>
-        )}
-
         {/* Indicador de sync */}
         <div className={`w-2 h-2 rounded-full ${
           !isOnline ? 'bg-orange-400' :
