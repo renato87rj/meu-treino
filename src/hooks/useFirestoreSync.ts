@@ -239,7 +239,7 @@ export default function useFirestoreSync(userId: string | null, isOnline: boolea
   }, []);
 
   useEffect(() => {
-    if (isOnline && userId) {
+    if (isOnline && userId && !isProcessingQueueRef.current) {
       processSyncQueue();
     }
   }, [isOnline, userId, processSyncQueue]);

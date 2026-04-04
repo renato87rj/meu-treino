@@ -22,10 +22,39 @@ function rowToPlan(row: {
   created_at: string;
   updated_at: string;
 }): WorkoutPlan {
+  // Validate exercises array
+  let exercises: Exercise[];
+  try {
+    if (!Array.isArray(row.exercises)) {
+      throw new Error('Exercises must be an array');
+    }
+    exercises = row.exercises.map((ex, index) => {
+      if (!ex || typeof ex !== 'object') {
+        throw new Error(`Exercise at index ${index} is not an object`);
+      }
+      const exercise = ex as any;
+      if (!exercise.id || !exercise.name || !exercise.sets || !exercise.reps) {
+        throw new Error(`Exercise at index ${index} missing required fields`);
+      }
+      return {
+        id: String(exercise.id),
+        name: String(exercise.name),
+        sets: Number(exercise.sets),
+        reps: String(exercise.reps),
+        weight: exercise.weight ? Number(exercise.weight) : null,
+        restTime: exercise.restTime ? Number(exercise.restTime) : null,
+        notes: exercise.notes ? String(exercise.notes) : null
+      };
+    });
+  } catch (error) {
+    console.error('Invalid exercises data in plan:', row.id, error);
+    exercises = []; // Fallback to empty array
+  }
+
   return {
     id: row.id,
     name: row.name,
-    exercises: row.exercises as Exercise[],
+    exercises,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
   };
@@ -50,6 +79,32 @@ function rowToRecord(row: {
   created_at: string;
   updated_at: string;
 }): WorkoutRecord {
+  // Validate completed_sets array
+  let completedSets: CompletedSet[];
+  try {
+    if (!Array.isArray(row.completed_sets)) {
+      throw new Error('Completed sets must be an array');
+    }
+    completedSets = row.completed_sets.map((set, index) => {
+      if (!set || typeof set !== 'object') {
+        throw new Error(`Completed set at index ${index} is not an object`);
+      }
+      const completedSet = set as any;
+      if (!completedSet.reps) {
+        throw new Error(`Completed set at index ${index} missing reps field`);
+      }
+      return {
+        reps: completedSet.reps,
+        weight: completedSet.weight ? Number(completedSet.weight) : null,
+        completed: completedSet.completed ?? true,
+        timestamp: completedSet.timestamp ? String(completedSet.timestamp) : new Date().toISOString()
+      };
+    });
+  } catch (error) {
+    console.error('Invalid completed_sets data in record:', row.id, error);
+    completedSets = []; // Fallback to empty array
+  }
+
   return {
     id: row.id,
     planId: row.plan_id,
@@ -60,7 +115,7 @@ function rowToRecord(row: {
     plannedReps: row.planned_reps,
     plannedWeight: row.planned_weight,
     weight: row.weight,
-    completedSets: row.completed_sets as CompletedSet[],
+    completedSets,
     completed: row.completed,
     substitute: row.substitute ?? undefined,
     sourcePlanName: row.source_plan_name ?? undefined,
@@ -105,9 +160,24 @@ export async function loadWorkoutHistoryAction(): Promise<WorkoutRecord[]> {
 
 export async function upsertWorkoutPlanAction(plan: WorkoutPlan): Promise<void> {
   const { supabase, user } = await requireUser();
+  
+  // Verify ownership if updating existing plan
+  if (plan.id) {
+    const { data: existingPlan } = await supabase
+      .from('workout_plans')
+      .select('id')
+      .eq('id', plan.id)
+      .eq('user_id', user.id)
+      .single();
+    
+    if (!existingPlan) {
+      throw new Error('Plan not found or access denied');
+    }
+  }
+  
   const { error } = await supabase.from('workout_plans').upsert(
     {
-      id: plan.id,
+      id: plan.id || crypto.randomUUID(),
       user_id: user.id,
       name: plan.name,
       exercises: plan.exercises,
@@ -137,9 +207,24 @@ export async function deleteWorkoutPlanAction(planId: string): Promise<void> {
 
 export async function upsertWorkoutHistoryAction(record: WorkoutRecord): Promise<void> {
   const { supabase, user } = await requireUser();
+  
+  // Verify ownership if updating existing record
+  if (record.id) {
+    const { data: existingRecord } = await supabase
+      .from('workout_history')
+      .select('id')
+      .eq('id', record.id)
+      .eq('user_id', user.id)
+      .single();
+    
+    if (!existingRecord) {
+      throw new Error('Record not found or access denied');
+    }
+  }
+  
   const { error } = await supabase.from('workout_history').upsert(
     {
-      id: record.id,
+      id: record.id || crypto.randomUUID(),
       user_id: user.id,
       plan_id: record.planId,
       plan_name: record.planName,

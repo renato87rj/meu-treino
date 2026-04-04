@@ -13,6 +13,7 @@ create table if not exists public.workout_plans (
 );
 
 create index if not exists workout_plans_user_id_idx on public.workout_plans (user_id);
+create index if not exists workout_plans_user_updated_idx on public.workout_plans (user_id, updated_at);
 
 create table if not exists public.workout_history (
   id uuid primary key default gen_random_uuid(),
@@ -36,6 +37,8 @@ create table if not exists public.workout_history (
 );
 
 create index if not exists workout_history_user_id_idx on public.workout_history (user_id);
+create index if not exists workout_history_user_plan_idx on public.workout_history (user_id, plan_id);
+create index if not exists workout_history_user_date_idx on public.workout_history (user_id, record_date desc);
 create index if not exists workout_history_plan_id_idx on public.workout_history (plan_id);
 
 alter table public.workout_plans enable row level security;
