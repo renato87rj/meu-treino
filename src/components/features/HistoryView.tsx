@@ -111,7 +111,7 @@ export default function HistoryView({ history, workoutPlans }: { history: Workou
     const dayRecords = history.filter(r =>
       new Date(r.date).toLocaleDateString('pt-BR') === dateKey
     );
-    const planMap: Record<string, { planId: number; planName: string; records: WorkoutRecord[] }> = {};
+    const planMap: Record<string, { planId: string; planName: string; records: WorkoutRecord[] }> = {};
     dayRecords.forEach(record => {
       const key = record.planId;
       if (!planMap[key]) {

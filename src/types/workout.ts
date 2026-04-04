@@ -1,5 +1,5 @@
 export interface Exercise {
-  id: number | string;
+  id: string;
   name: string;
   sets: number;
   reps: string;
@@ -10,7 +10,7 @@ export interface Exercise {
 }
 
 export interface WorkoutPlan {
-  id: number;
+  id: string;
   name: string;
   exercises: Exercise[];
   createdAt: string;
@@ -22,10 +22,10 @@ export interface CompletedSet {
 }
 
 export interface WorkoutRecord {
-  id: number;
-  planId: number;
+  id: string;
+  planId: string;
   planName: string;
-  exerciseId: number;
+  exerciseId: string;
   exerciseName: string;
   plannedSets: number;
   plannedReps: string;
@@ -46,5 +46,5 @@ export interface SetProgressEntry {
   sets: Array<{ reps: number | null }>;
 }
 
-export type SetProgressMap = Record<number | string, SetProgressEntry>;
-export type SubstituteExercisesMap = Record<number | string, Exercise[]>;
+export type SetProgressMap = Record<string, SetProgressEntry>;
+export type SubstituteExercisesMap = Record<string, Exercise[]>;

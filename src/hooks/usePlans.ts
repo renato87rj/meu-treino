@@ -11,7 +11,7 @@ export default function usePlans(
   setWorkoutPlans: React.Dispatch<React.SetStateAction<WorkoutPlan[]>>,
   userId: string | null,
   syncPlan: (plan: WorkoutPlan) => void,
-  syncDeletePlan: (planId: number) => void,
+  syncDeletePlan: (planId: string) => void,
   ignoreNextUpdateRef: IgnoreRef
 ) {
   const { showToast } = useToast();
@@ -24,7 +24,7 @@ export default function usePlans(
     }
 
     const plan = {
-      id: Date.now(),
+      id: crypto.randomUUID(),
       name: name,
       exercises: [],
       createdAt: new Date().toISOString(),
@@ -45,11 +45,11 @@ export default function usePlans(
   const duplicatePlan = useCallback((plan: WorkoutPlan) => {
     const newPlan = {
       ...plan,
-      id: Date.now(),
+      id: crypto.randomUUID(),
       name: `${plan.name} (cópia)`,
       exercises: plan.exercises.map(ex => ({
         ...ex,
-        id: Date.now() + Math.random()
+        id: crypto.randomUUID()
       })),
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString()
@@ -65,7 +65,7 @@ export default function usePlans(
     showToast('Ficha duplicada com sucesso!', 'success');
   }, [userId, syncPlan, setWorkoutPlans, ignoreNextUpdateRef, showToast]);
 
-  const editPlanName = useCallback((planId: number, newName: string) => {
+  const editPlanName = useCallback((planId: string, newName: string) => {
     if (!newName.trim()) {
       showToast('Digite um nome para a ficha', 'warning');
       return false;
@@ -91,7 +91,7 @@ export default function usePlans(
     return true;
   }, [workoutPlans, userId, syncPlan, setWorkoutPlans, ignoreNextUpdateRef, showToast]);
 
-  const deletePlan = async (planId: number) => {
+  const deletePlan = async (planId: string) => {
     const confirmed = await confirm({
       title: 'Excluir ficha',
       message: 'Tem certeza que deseja excluir esta ficha? Essa ação não pode ser desfeita.',
@@ -112,14 +112,14 @@ export default function usePlans(
     return true;
   };
 
-  const addExercise = useCallback((planId: number, exerciseData: any) => {
+  const addExercise = useCallback((planId: string, exerciseData: any) => {
     if (!exerciseData.name || !exerciseData.sets || !exerciseData.reps) {
       showToast('Preencha todos os campos', 'warning');
       return false;
     }
 
     const exercise = {
-      id: Date.now(),
+      id: crypto.randomUUID(),
       name: exerciseData.name,
       sets: parseInt(exerciseData.sets),
       reps: exerciseData.reps,
@@ -146,7 +146,7 @@ export default function usePlans(
     return true;
   }, [workoutPlans, userId, syncPlan, setWorkoutPlans, ignoreNextUpdateRef, showToast]);
 
-  const editExercise = useCallback((planId: number, exerciseData: any) => {
+  const editExercise = useCallback((planId: string, exerciseData: any) => {
     if (!exerciseData.name || !exerciseData.sets || !exerciseData.reps) {
       showToast('Preencha todos os campos', 'warning');
       return false;
@@ -181,7 +181,7 @@ export default function usePlans(
     return true;
   }, [workoutPlans, userId, syncPlan, setWorkoutPlans, ignoreNextUpdateRef, showToast]);
 
-  const deleteExercise = async (planId: number, exerciseId: number | string) => {
+  const deleteExercise = async (planId: string, exerciseId: string) => {
     const confirmed = await confirm({
       title: 'Remover exercício',
       message: 'Tem certeza que deseja remover este exercício da ficha?',
@@ -212,10 +212,10 @@ export default function usePlans(
     return true;
   };
 
-  const duplicateExercise = useCallback((planId: number, exercise: Exercise) => {
+  const duplicateExercise = useCallback((planId: string, exercise: Exercise) => {
     const newExercise = {
       ...exercise,
-      id: Date.now(),
+      id: crypto.randomUUID(),
       name: `${exercise.name} (cópia)`
     };
 
@@ -236,7 +236,7 @@ export default function usePlans(
     }
   }, [workoutPlans, userId, syncPlan, setWorkoutPlans, ignoreNextUpdateRef]);
 
-  const moveExercise = useCallback((planId: number, exerciseId: number | string, direction: string) => {
+  const moveExercise = useCallback((planId: string, exerciseId: string, direction: string) => {
     const updatedPlan = workoutPlans.find(p => p.id === planId);
     if (!updatedPlan) return;
 
@@ -262,7 +262,7 @@ export default function usePlans(
     }
   }, [workoutPlans, userId, syncPlan, setWorkoutPlans, ignoreNextUpdateRef]);
 
-  const persistWeightToPlan = useCallback((planId: number, exerciseId: number | string, newWeight: number | string | null) => {
+  const persistWeightToPlan = useCallback((planId: string, exerciseId: string, newWeight: number | string | null) => {
     if (newWeight == null || newWeight === '') return;
     const numWeight = parseFloat(String(newWeight));
     if (isNaN(numWeight)) return;

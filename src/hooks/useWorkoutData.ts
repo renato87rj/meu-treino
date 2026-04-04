@@ -4,6 +4,7 @@ import usePlans from './usePlans';
 import useHistory from './useHistory';
 import useWorkoutSession from './useWorkoutSession';
 import { hasPendingOperations } from '../utils/syncQueue';
+import { loadWorkoutPlansAction, loadWorkoutHistoryAction } from '@/app/actions/workout';
 import type { WorkoutPlan, WorkoutRecord, SetProgressMap, SubstituteExercisesMap } from '../types/workout';
 
 export default function useWorkoutData(userId: string | null = null) {
@@ -73,6 +74,10 @@ export default function useWorkoutData(userId: string | null = null) {
   const lastLocalUpdateRef = useRef<string | null>(null);
   const ignoreNextUpdateRef = useRef({ plans: false, history: false });
 
+  useEffect(() => {
+    hasMigratedRef.current = false;
+  }, [userId]);
+
   const {
     isSyncing,
     syncError,
@@ -84,8 +89,6 @@ export default function useWorkoutData(userId: string | null = null) {
     syncDeletePlan,
     syncHistory,
     syncDeleteHistory,
-    setupRealtimeListeners,
-    cleanupListeners,
     processSyncQueue
   } = useFirestoreSync(userId, isOnline);
 
@@ -161,70 +164,43 @@ export default function useWorkoutData(userId: string | null = null) {
     }));
   }, [setProgress, substituteExercises, isInitialized]);
 
-  // Configurar listeners em tempo real quando usuário estiver logado
-  useEffect(() => {
-    if (!userId || !isInitialized) return;
-
-    const handlePlansUpdate = (plans: WorkoutPlan[]) => {
-      if (plans && Array.isArray(plans)) {
-        if (ignoreNextUpdateRef.current.plans) {
-          ignoreNextUpdateRef.current.plans = false;
-          return;
-        }
-
-        const normalizedPlans = plans.map((plan: any) => ({
-          ...plan,
-          createdAt: plan.createdAt?.toDate?.()?.toISOString() || plan.createdAt,
-          updatedAt: plan.updatedAt?.toDate?.()?.toISOString() || plan.updatedAt
-        }));
-
-        setWorkoutPlans(normalizedPlans);
-      }
-    };
-
-    const handleHistoryUpdate = (historyData: WorkoutRecord[]) => {
-      if (historyData && Array.isArray(historyData)) {
-        if (ignoreNextUpdateRef.current.history) {
-          ignoreNextUpdateRef.current.history = false;
-          return;
-        }
-
-        const normalizedHistory = historyData.map((record: any) => ({
-          ...record,
-          date: record.date?.toDate?.()?.toISOString() || record.date,
-          createdAt: record.createdAt?.toDate?.()?.toISOString() || record.createdAt,
-          updatedAt: record.updatedAt?.toDate?.()?.toISOString() || record.updatedAt
-        }));
-
-        setHistory(normalizedHistory);
-      }
-    };
-
-    setupRealtimeListeners(handlePlansUpdate, handleHistoryUpdate);
-
-    return () => {
-      cleanupListeners();
-    };
-  }, [userId, isInitialized, setupRealtimeListeners, cleanupListeners]);
-
-  // Migração inicial: upload de dados locais para Firestore se for primeira vez
+  // Migração inicial + carga remota (Server Actions) ao logar
   useEffect(() => {
     if (!userId || !isInitialized || isSyncingRef.current || hasMigratedRef.current) return;
 
-    const migrateData = async () => {
-      const isFirstSync = await checkIfFirstSync();
+    let cancelled = false;
 
-      if (isFirstSync && (workoutPlans.length > 0 || history.length > 0)) {
-        isSyncingRef.current = true;
+    const run = async () => {
+      try {
+        const isFirstSync = await checkIfFirstSync();
+        if (cancelled) return;
+
+        if (isFirstSync && (workoutPlans.length > 0 || history.length > 0)) {
+          isSyncingRef.current = true;
+          await syncLocalToFirestore(workoutPlans, history);
+          isSyncingRef.current = false;
+        }
         hasMigratedRef.current = true;
-        await syncLocalToFirestore(workoutPlans, history);
-        isSyncingRef.current = false;
-      } else {
+        if (cancelled) return;
+
+        const [remotePlans, remoteHistory] = await Promise.all([
+          loadWorkoutPlansAction(),
+          loadWorkoutHistoryAction(),
+        ]);
+        if (cancelled) return;
+
+        setWorkoutPlans(remotePlans);
+        setHistory(remoteHistory);
+      } catch (e) {
+        console.error('Erro ao sincronizar com Supabase:', e);
         hasMigratedRef.current = true;
       }
     };
 
-    migrateData();
+    run();
+    return () => {
+      cancelled = true;
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [userId, isInitialized]);
 

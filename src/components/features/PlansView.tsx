@@ -19,16 +19,16 @@ interface Props {
   workoutPlans: WorkoutPlan[];
   showAddPlan: boolean;
   onSelectPlanForWorkout: (plan: WorkoutPlan) => void;
-  onEditPlanName: (planId: number, name: string) => boolean;
+  onEditPlanName: (planId: string, name: string) => boolean;
   onDuplicatePlan: (plan: WorkoutPlan) => void;
-  onDeletePlan: (planId: number) => void;
+  onDeletePlan: (planId: string) => void;
   onCreatePlan: (name: string) => boolean;
   onCancelAdd: () => void;
-  onAddExercise: (planId: number, exercise: ExerciseForm) => boolean;
-  onEditExercise: (planId: number, exercise: Exercise) => boolean;
-  onDeleteExercise: (planId: number, exerciseId: number | string) => void;
-  onDuplicateExercise: (planId: number, exercise: Exercise) => void;
-  onMoveExercise: (planId: number, exerciseId: number | string, direction: string) => void;
+  onAddExercise: (planId: string, exercise: ExerciseForm) => boolean;
+  onEditExercise: (planId: string, exercise: Exercise) => boolean;
+  onDeleteExercise: (planId: string, exerciseId: string) => void;
+  onDuplicateExercise: (planId: string, exercise: Exercise) => void;
+  onMoveExercise: (planId: string, exerciseId: string, direction: string) => void;
   onAddPlan: () => void;
 }
 
@@ -49,12 +49,12 @@ export default function PlansView({
   onAddPlan,
 }: Props) {
   const [newPlanName, setNewPlanName] = useState('');
-  const [expandedPlan, setExpandedPlan] = useState<number | null>(null);
-  const [showAddExerciseForm, setShowAddExerciseForm] = useState<number | null>(null);
+  const [expandedPlan, setExpandedPlan] = useState<string | null>(null);
+  const [showAddExerciseForm, setShowAddExerciseForm] = useState<string | null>(null);
   const [editingExercise, setEditingExercise] = useState<Exercise | null>(null);
-  const [editingPlanId, setEditingPlanId] = useState<number | null>(null);
+  const [editingPlanId, setEditingPlanId] = useState<string | null>(null);
   const [editingPlanName, setEditingPlanName] = useState('');
-  const [openMenuId, setOpenMenuId] = useState<number | null>(null);
+  const [openMenuId, setOpenMenuId] = useState<string | null>(null);
   const [openExerciseMenu, setOpenExerciseMenu] = useState<string | null>(null);
   const [toast, setToast] = useState<Toast | null>(null);
   const [newExercise, setNewExercise] = useState<ExerciseForm>({
@@ -64,11 +64,11 @@ export default function PlansView({
     weight: ''
   });
   const previousPlansCount = useRef(workoutPlans.length);
-  const menuRefs = useRef<Record<number, HTMLDivElement>>({});
+  const menuRefs = useRef<Record<string, HTMLDivElement>>({});
   const exerciseMenuRefs = useRef<Record<string, HTMLDivElement>>({});
   const toastTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const longPressTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const dragStateRef = useRef<{ planId: number | null; exerciseId: number | string | null; fromIndex: number; toIndex: number; pointerId: number | null }>({ planId: null, exerciseId: null, fromIndex: -1, toIndex: -1, pointerId: null });
+  const dragStateRef = useRef<{ planId: string | null; exerciseId: string | null; fromIndex: number; toIndex: number; pointerId: number | null }>({ planId: null, exerciseId: null, fromIndex: -1, toIndex: -1, pointerId: null });
   const [draggingKey, setDraggingKey] = useState<string | null>(null);
 
   useEffect(() => {
@@ -106,7 +106,7 @@ export default function PlansView({
     }
   };
 
-  const togglePlan = (planId: number) => {
+  const togglePlan = (planId: string) => {
     if (expandedPlan === planId) {
       setExpandedPlan(null);
       setShowAddExerciseForm(null);
@@ -122,7 +122,7 @@ export default function PlansView({
     setEditingExercise(null);
   };
 
-  const handleAddExercise = (planId: number) => {
+  const handleAddExercise = (planId: string) => {
     const ok = onAddExercise(planId, newExercise);
 
     if (toastTimeoutRef.current) clearTimeout(toastTimeoutRef.current);
@@ -137,7 +137,7 @@ export default function PlansView({
     toastTimeoutRef.current = setTimeout(() => setToast(null), 2200);
   };
 
-  const handleSaveEdit = (planId: number) => {
+  const handleSaveEdit = (planId: string) => {
     if (editingExercise && onEditExercise(planId, editingExercise as Exercise)) {
       setEditingExercise(null);
     }
@@ -207,7 +207,7 @@ export default function PlansView({
     };
   }, [openExerciseMenu]);
 
-  const toggleMenu = (planId: number, e: React.MouseEvent) => {
+  const toggleMenu = (planId: string, e: React.MouseEvent) => {
     e.stopPropagation();
     setOpenMenuId(openMenuId === planId ? null : planId);
   };
@@ -217,7 +217,7 @@ export default function PlansView({
     setOpenExerciseMenu(openExerciseMenu === menuKey ? null : menuKey);
   };
 
-  const handleExerciseMenuAction = (planId: number, exercise: Exercise, action: string) => {
+  const handleExerciseMenuAction = (planId: string, exercise: Exercise, action: string) => {
     setOpenExerciseMenu(null);
     if (action === 'edit') {
       setEditingExercise(exercise);
@@ -228,7 +228,7 @@ export default function PlansView({
     }
   };
 
-  const startLongPressDrag = (planId: number, exerciseId: number | string, fromIndex: number, e: React.PointerEvent<HTMLButtonElement>) => {
+  const startLongPressDrag = (planId: string, exerciseId: string, fromIndex: number, e: React.PointerEvent<HTMLButtonElement>) => {
     e.stopPropagation();
     if (longPressTimeoutRef.current) clearTimeout(longPressTimeoutRef.current);
 
@@ -278,7 +278,7 @@ export default function PlansView({
     dragStateRef.current = { planId: null, exerciseId: null, fromIndex: -1, toIndex: -1, pointerId: null };
   };
 
-  const handleMenuAction = (planId: number, action: string) => {
+  const handleMenuAction = (planId: string, action: string) => {
     setOpenMenuId(null);
     if (action === 'edit') {
       const plan = workoutPlans.find(p => p.id === planId);

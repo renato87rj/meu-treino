@@ -195,9 +195,9 @@ export default function WorkoutTracker() {
             onUpdateWeight={updateExerciseWeight}
             onCompleteExercise={completeExercise}
             onUndoExercise={undoExercise}
-            substituteExercises={substituteExercises[selectedPlan?.id ?? 0] || []}
+            substituteExercises={selectedPlan ? substituteExercises[selectedPlan.id] || [] : []}
             onAddSubstitute={(ex: import('../types/workout').Exercise) => addSubstituteExercise(selectedPlan!.id, ex)}
-            onRemoveSubstitute={(exId: number | string) => removeSubstituteExercise(selectedPlan!.id, exId)}
+            onRemoveSubstitute={(exId: string) => removeSubstituteExercise(selectedPlan!.id, exId)}
             onStartRestTimer={startRestTimer}
             onFinishWorkout={() => handleViewChange('plans')}
             workoutFinished={workoutFinished}

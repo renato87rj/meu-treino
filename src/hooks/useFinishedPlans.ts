@@ -1,22 +1,22 @@
 import { useState } from 'react';
 
 export default function useFinishedPlans() {
-  const [finishedPlanIds, setFinishedPlanIds] = useState<Set<string | number>>(() => {
-    if (typeof window === 'undefined') return new Set<string | number>();
+  const [finishedPlanIds, setFinishedPlanIds] = useState<Set<string>>(() => {
+    if (typeof window === 'undefined') return new Set<string>();
     try {
       const today = new Date().toLocaleDateString('pt-BR');
       const stored = JSON.parse(localStorage.getItem('workoutFinished') || '{}');
-      const ids = new Set<string | number>();
+      const ids = new Set<string>();
       Object.entries(stored).forEach(([planId, date]) => {
         if (date === today) ids.add(planId);
       });
       return ids;
-    } catch { return new Set<string | number>(); }
+    } catch { return new Set<string>(); }
   });
 
-  const isFinished = (planId: string | number) => finishedPlanIds.has(planId);
+  const isFinished = (planId: string) => finishedPlanIds.has(planId);
 
-  const setWorkoutFinished = (planId: string | number, finished: boolean) => {
+  const setWorkoutFinished = (planId: string, finished: boolean) => {
     const today = new Date().toLocaleDateString('pt-BR');
     setFinishedPlanIds(prev => {
       const next = new Set(prev);

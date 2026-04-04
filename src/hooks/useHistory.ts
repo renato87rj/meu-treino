@@ -9,11 +9,11 @@ export default function useHistory(
   setHistory: React.Dispatch<React.SetStateAction<WorkoutRecord[]>>,
   userId: string | null,
   syncHistory: (record: WorkoutRecord) => void,
-  syncDeleteHistory: (recordId: number) => void,
+  syncDeleteHistory: (recordId: string) => void,
   ignoreNextUpdateRef: IgnoreRef
 ) {
 
-  const getTodayRecords = useCallback((planId: string | number) => {
+  const getTodayRecords = useCallback((planId: string) => {
     const today = new Date().toLocaleDateString('pt-BR');
     return history.filter(record => {
       const recordDate = new Date(record.date).toLocaleDateString('pt-BR');
@@ -21,7 +21,7 @@ export default function useHistory(
     });
   }, [history]);
 
-  const removeRecord = useCallback((recordId: number) => {
+  const removeRecord = useCallback((recordId: string) => {
     setHistory(prev => prev.filter(r => r.id !== recordId));
 
     if (userId) {

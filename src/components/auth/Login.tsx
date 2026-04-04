@@ -16,7 +16,7 @@ export default function Login() {
   const [resetEmailSent, setResetEmailSent] = useState(false);
   const [showResetPassword, setShowResetPassword] = useState(false);
 
-  const { user, loading: authLoading, firebaseError, signIn, signUp, resetPassword, signInWithGoogle } = useAuth();
+  const { user, loading: authLoading, authError, signIn, signUp, resetPassword, signInWithGoogle } = useAuth();
   const { showToast } = useToast();
   const router = useRouter();
 
@@ -28,10 +28,10 @@ export default function Login() {
 
   // Mostrar erro se Firebase não estiver configurado
   useEffect(() => {
-    if (firebaseError && firebaseError.includes('não está configurado')) {
-      setError('Firebase não está configurado. Configure as variáveis de ambiente no arquivo .env.local');
+    if (authError && authError.includes('não está configurado')) {
+      setError('Supabase não está configurado. Configure NEXT_PUBLIC_SUPABASE_URL e NEXT_PUBLIC_SUPABASE_ANON_KEY no arquivo .env.local');
     }
-  }, [firebaseError]);
+  }, [authError]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -52,16 +52,7 @@ export default function Login() {
         setPassword('');
       } else {
         // Traduzir mensagens de erro comuns
-        const errorMessages: Record<string, string> = {
-          'auth/user-not-found': 'Usuário não encontrado.',
-          'auth/wrong-password': 'Senha incorreta.',
-          'auth/email-already-in-use': 'Este email já está em uso.',
-          'auth/weak-password': 'A senha deve ter pelo menos 6 caracteres.',
-          'auth/invalid-email': 'Email inválido.',
-          'auth/too-many-requests': 'Muitas tentativas. Tente novamente mais tarde.',
-          'auth/network-request-failed': 'Erro de conexão. Verifique sua internet.'
-        };
-        setError(errorMessages[result.error ?? ''] || result.error || 'Ocorreu um erro. Tente novamente.');
+        setError(result.error || 'Ocorreu um erro. Tente novamente.');
       }
     } catch (err: unknown) {
       setError('Ocorreu um erro inesperado. Tente novamente.');
@@ -99,11 +90,7 @@ export default function Login() {
         setResetEmailSent(true);
         showToast('Email de recuperação enviado!', 'success');
       } else {
-        const errorMessages: Record<string, string> = {
-          'auth/user-not-found': 'Usuário não encontrado.',
-          'auth/invalid-email': 'Email inválido.'
-        };
-        setError(errorMessages[result.error ?? ''] || result.error || 'Erro ao enviar email de recuperação.');
+        setError(result.error || 'Erro ao enviar email de recuperação.');
       }
     } catch (err: unknown) {
       setError('Erro ao enviar email de recuperação.');
@@ -125,7 +112,7 @@ export default function Login() {
   }
 
   // Mostrar aviso se Firebase não estiver configurado
-  const showFirebaseConfigError = firebaseError && firebaseError.includes('não está configurado');
+  const showFirebaseConfigError = authError && authError.includes('não está configurado');
 
   if (showResetPassword) {
     return (
@@ -241,13 +228,13 @@ export default function Login() {
               <div className="flex items-start gap-2 text-yellow-300 text-sm">
                 <AlertCircle size={20} className="flex-shrink-0 mt-0.5" />
                 <div>
-                  <p className="font-semibold mb-1">⚠️ Firebase não configurado</p>
+                  <p className="font-semibold mb-1">⚠️ Supabase não configurado</p>
                   <p className="text-yellow-200/80 text-xs mb-2">
-                    Para usar a autenticação, você precisa configurar as variáveis de ambiente do Firebase.
+                    Para usar a autenticação, configure NEXT_PUBLIC_SUPABASE_URL e NEXT_PUBLIC_SUPABASE_ANON_KEY.
                   </p>
                   <ol className="text-yellow-200/80 text-xs list-decimal list-inside space-y-1">
                     <li>Crie um arquivo <code className="bg-yellow-900/30 px-1 rounded">.env.local</code> na raiz do projeto</li>
-                    <li>Adicione as variáveis do Firebase (veja <code className="bg-yellow-900/30 px-1 rounded">FIREBASE_SETUP.md</code>)</li>
+                    <li>Copie as chaves do painel do Supabase (veja <code className="bg-yellow-900/30 px-1 rounded">.env.example</code>)</li>
                     <li>Reinicie o servidor de desenvolvimento</li>
                   </ol>
                 </div>
