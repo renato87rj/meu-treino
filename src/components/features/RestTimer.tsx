@@ -1,7 +1,22 @@
 import React, { useState } from 'react';
 import { X, Play, Pause, RotateCcw, Zap } from 'lucide-react';
 
-export default function RestTimer({ 
+interface Props {
+  timerActive: boolean;
+  timerSeconds: number;
+  timerRunning: boolean;
+  timerMinimized: boolean;
+  timerFinished: boolean;
+  formatTime: (seconds: number) => string;
+  toggleTimer: () => void;
+  resetTimer: () => void;
+  closeTimer: () => void;
+  toggleMinimize: () => void;
+  dismissFinished: () => void;
+  setCustomTime: (seconds: number) => void;
+}
+
+export default function RestTimer({
   timerActive,
   timerSeconds,
   timerRunning,
@@ -13,8 +28,8 @@ export default function RestTimer({
   closeTimer,
   toggleMinimize,
   dismissFinished,
-  setCustomTime
-}) {
+  setCustomTime,
+}: Props) {
   const [expanded, setExpanded] = useState(false);
 
   if (!timerActive) return null;

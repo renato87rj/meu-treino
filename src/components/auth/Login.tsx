@@ -3,7 +3,8 @@
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { LogIn, Mail, Lock, Dumbbell, Eye, EyeOff, AlertCircle } from 'lucide-react';
-import { useAuth } from '../contexts/AuthContext';
+import { useAuth } from '../../contexts/AuthContext';
+import { useToast } from '../../contexts/ToastContext';
 
 export default function Login() {
   const [email, setEmail] = useState('');
@@ -16,6 +17,7 @@ export default function Login() {
   const [showResetPassword, setShowResetPassword] = useState(false);
 
   const { user, loading: authLoading, firebaseError, signIn, signUp, resetPassword, signInWithGoogle } = useAuth();
+  const { showToast } = useToast();
   const router = useRouter();
 
   useEffect(() => {
@@ -31,7 +33,7 @@ export default function Login() {
     }
   }, [firebaseError]);
 
-  const handleSubmit = async (e) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
     setLoading(true);
@@ -45,13 +47,12 @@ export default function Login() {
       }
 
       if (result.success) {
-        // Login bem-sucedido - o useEffect vai redirecionar automaticamente
-        // Limpar campos
+        showToast(isSignUp ? 'Conta criada com sucesso!' : 'Login realizado!', 'success');
         setEmail('');
         setPassword('');
       } else {
         // Traduzir mensagens de erro comuns
-        const errorMessages = {
+        const errorMessages: Record<string, string> = {
           'auth/user-not-found': 'Usuário não encontrado.',
           'auth/wrong-password': 'Senha incorreta.',
           'auth/email-already-in-use': 'Este email já está em uso.',
@@ -60,10 +61,9 @@ export default function Login() {
           'auth/too-many-requests': 'Muitas tentativas. Tente novamente mais tarde.',
           'auth/network-request-failed': 'Erro de conexão. Verifique sua internet.'
         };
-        
-        setError(errorMessages[result.error] || result.error || 'Ocorreu um erro. Tente novamente.');
+        setError(errorMessages[result.error ?? ''] || result.error || 'Ocorreu um erro. Tente novamente.');
       }
-    } catch (err) {
+    } catch (err: unknown) {
       setError('Ocorreu um erro inesperado. Tente novamente.');
     } finally {
       setLoading(false);
@@ -77,18 +77,18 @@ export default function Login() {
     try {
       const result = await signInWithGoogle();
       if (result.success) {
-        // Login bem-sucedido - o useEffect vai redirecionar automaticamente
+        showToast('Login com Google realizado!', 'success');
       } else {
         setError(result.error || 'Erro ao fazer login com Google.');
       }
-    } catch (err) {
+    } catch (err: unknown) {
       setError('Erro ao fazer login com Google.');
     } finally {
       setLoading(false);
     }
   };
 
-  const handleResetPassword = async (e) => {
+  const handleResetPassword = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
     setLoading(true);
@@ -97,14 +97,15 @@ export default function Login() {
       const result = await resetPassword(email);
       if (result.success) {
         setResetEmailSent(true);
+        showToast('Email de recuperação enviado!', 'success');
       } else {
-        const errorMessages = {
+        const errorMessages: Record<string, string> = {
           'auth/user-not-found': 'Usuário não encontrado.',
           'auth/invalid-email': 'Email inválido.'
         };
-        setError(errorMessages[result.error] || result.error || 'Erro ao enviar email de recuperação.');
+        setError(errorMessages[result.error ?? ''] || result.error || 'Erro ao enviar email de recuperação.');
       }
-    } catch (err) {
+    } catch (err: unknown) {
       setError('Erro ao enviar email de recuperação.');
     } finally {
       setLoading(false);

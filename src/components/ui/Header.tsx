@@ -3,21 +3,35 @@
 import React from 'react';
 import { useRouter } from 'next/navigation';
 import { LogOut } from 'lucide-react';
-import { useAuth } from '../contexts/AuthContext';
+import { useAuth } from '../../contexts/AuthContext';
+import { useToast } from '../../contexts/ToastContext';
 
-export default function Header({ 
-  view, 
-  selectedPlan, 
+import type { WorkoutPlan } from '../../types/workout';
+
+interface Props {
+  view: string;
+  selectedPlan: WorkoutPlan | null;
+  completedCount: number;
+  totalCount: number;
+  isSyncing: boolean;
+  isOnline: boolean;
+}
+
+export default function Header({
+  view,
+  selectedPlan,
   completedCount,
   totalCount,
   isSyncing,
   isOnline,
-}) {
+}: Props) {
   const { logout } = useAuth();
+  const { showToast } = useToast();
   const router = useRouter();
 
   const handleLogout = async () => {
     await logout();
+    showToast('Logout realizado', 'info');
     router.push('/login');
   };
 
@@ -41,13 +55,6 @@ export default function Header({
 
       {/* Ações à direita */}
       <div className="flex items-center gap-2">
-        {/* Badge de progresso — só na aba Treinar */}
-        {view === 'workout' && selectedPlan && (
-          <span className="text-[11px] font-semibold text-purple-300 bg-purple-500/15 border border-purple-500/25 px-3 py-1 rounded-full">
-            {completedCount}/{totalCount} feitos
-          </span>
-        )}
-
         {/* Indicador de sync */}
         <div className={`w-2 h-2 rounded-full ${
           !isOnline ? 'bg-orange-400' :

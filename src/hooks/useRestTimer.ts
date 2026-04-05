@@ -14,8 +14,8 @@ export default function useRestTimer(defaultRestTime = 90) {
   });
   const [timerFinished, setTimerFinished] = useState(false);
 
-  const endTimeRef = useRef(null);   // timestamp absoluto de quando o timer termina
-  const pausedLeftRef = useRef(null); // segundos restantes ao pausar
+  const endTimeRef = useRef<number | null>(null);   // timestamp absoluto de quando o timer termina
+  const pausedLeftRef = useRef<number | null>(null); // segundos restantes ao pausar
 
   // Pedir permissão de notificação ao montar
   useEffect(() => {
@@ -33,8 +33,9 @@ export default function useRestTimer(defaultRestTime = 90) {
 
     // Tocar som de alarme (Web Audio API — 3 beeps)
     try {
-      const ctx = new (window.AudioContext || window.webkitAudioContext)();
-      const playBeep = (time, freq = 880, duration = 0.15) => {
+      const AudioContextClass = window.AudioContext || (window as any).webkitAudioContext;
+      const ctx = new AudioContextClass();
+      const playBeep = (time: number, freq = 880, duration = 0.15) => {
         const osc = ctx.createOscillator();
         const gain = ctx.createGain();
         osc.connect(gain);
@@ -61,9 +62,7 @@ export default function useRestTimer(defaultRestTime = 90) {
               body: 'Hora de voltar ao treino!',
               icon: '/icon-192.png',
               badge: '/icon-192.png',
-              tag: 'rest-timer',
-              renotify: true,
-              vibrate: [200, 100, 200, 100, 200]
+              tag: 'rest-timer'
             });
           });
         } else {
@@ -117,7 +116,7 @@ export default function useRestTimer(defaultRestTime = 90) {
   }, [timerRunning, syncFromEndTime]);
 
   // Iniciar timer de descanso
-  const startRestTimer = useCallback((customSeconds = null) => {
+  const startRestTimer = useCallback((customSeconds: number | null = null) => {
     const timeToUse = customSeconds !== null ? customSeconds : defaultTime;
     endTimeRef.current = Date.now() + timeToUse * 1000;
     pausedLeftRef.current = null;
@@ -173,7 +172,7 @@ export default function useRestTimer(defaultRestTime = 90) {
   };
 
   // Setar tempo customizado
-  const setCustomTime = useCallback((seconds) => {
+  const setCustomTime = useCallback((seconds: number) => {
     endTimeRef.current = Date.now() + seconds * 1000;
     pausedLeftRef.current = null;
     setTimerSeconds(seconds);
@@ -182,7 +181,7 @@ export default function useRestTimer(defaultRestTime = 90) {
   }, []);
 
   // Alterar tempo padrão e persistir
-  const setDefaultRestTime = useCallback((seconds) => {
+  const setDefaultRestTime = useCallback((seconds: number) => {
     setDefaultTime(seconds);
     if (typeof window !== 'undefined') {
       localStorage.setItem('restTimerDefault', String(seconds));
@@ -190,7 +189,7 @@ export default function useRestTimer(defaultRestTime = 90) {
   }, []);
 
   // Formatar tempo para exibição
-  const formatTime = (seconds) => {
+  const formatTime = (seconds: number): string => {
     const mins = Math.floor(seconds / 60);
     const secs = seconds % 60;
     return `${mins}:${secs.toString().padStart(2, '0')}`;

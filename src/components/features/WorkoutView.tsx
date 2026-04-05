@@ -1,6 +1,29 @@
 import React, { useState, useMemo } from 'react';
 import { Dumbbell, RotateCcw, Check, Plus, X, Search, ArrowRightLeft, TrendingUp, TrendingDown, Minus } from 'lucide-react';
 import ExerciseAutocomplete from './ExerciseAutocomplete';
+import type { WorkoutPlan, Exercise, WorkoutRecord, SetProgressMap } from '../../types/workout';
+
+interface Props {
+  selectedPlan: WorkoutPlan | null;
+  allPlans: WorkoutPlan[];
+  completedTodayIds: Set<number | string>;
+  completedTodayNames: Set<string>;
+  todayRecords: WorkoutRecord[];
+  lastWorkoutRecordsByExerciseName: Record<string, WorkoutRecord>;
+  setProgress: SetProgressMap;
+  onConfirmSet: (plan: WorkoutPlan, exercise: Exercise, setIndex: number, reps: string | null) => boolean;
+  onUnconfirmSet: (exerciseId: number | string, setIndex: number) => number | null;
+  onUpdateWeight: (exerciseId: number | string, weight: string) => void;
+  onCompleteExercise: (plan: WorkoutPlan, exercise: Exercise, setsData: (string | null)[]) => boolean;
+  onUndoExercise: (plan: WorkoutPlan, exercise: Exercise) => void;
+  substituteExercises: Exercise[];
+  onAddSubstitute: (exercise: Exercise) => void;
+  onRemoveSubstitute: (exerciseId: number | string) => void;
+  onStartRestTimer: (seconds?: number | null) => void;
+  onFinishWorkout: () => void;
+  workoutFinished: boolean;
+  setWorkoutFinished: (finished: boolean) => void;
+}
 
 export default function WorkoutView({
   selectedPlan,
@@ -21,19 +44,19 @@ export default function WorkoutView({
   onStartRestTimer,
   onFinishWorkout,
   workoutFinished,
-  setWorkoutFinished
-}) {
-  const [expanded, setExpanded] = useState({});
-  const [repsInput, setRepsInput] = useState({});
+  setWorkoutFinished,
+}: Props) {
+  const [expanded, setExpanded] = useState<Record<number | string, boolean>>({});
+  const [repsInput, setRepsInput] = useState<Record<number | string, Record<number, string>>>({});
   const [showPicker, setShowPicker] = useState(false);
   const [pickerTab, setPickerTab] = useState('plans');
   const [pickerSearch, setPickerSearch] = useState('');
-  const [customForm, setCustomForm] = useState({ name: '', sets: '3', reps: '12', weight: '' });
+  const [customForm, setCustomForm] = useState<{ name: string; sets: string; reps: string; weight: string }>({ name: '', sets: '3', reps: '12', weight: '' });
   const tempIdRef = React.useRef(1);
 
   // Nomes únicos de exercícios já usados pelo usuário
   const userExerciseNames = useMemo(() => {
-    const names = new Set();
+    const names = new Set<string>();
     (allPlans || []).forEach(plan => plan.exercises.forEach(ex => names.add(ex.name)));
     return [...names];
   }, [allPlans]);
@@ -42,24 +65,24 @@ export default function WorkoutView({
 
   const otherPlans = (allPlans || []).filter(p => p.id !== selectedPlan.id);
 
-  const toggleExpand = (exerciseId) => {
+  const toggleExpand = (exerciseId: number | string) => {
     setExpanded(prev => ({ ...prev, [exerciseId]: !prev[exerciseId] }));
   };
 
-  const isCompleted = (exercise) =>
+  const isCompleted = (exercise: Exercise) =>
     completedTodayIds.has(exercise.id) || completedTodayNames.has(exercise.name);
 
-  const getProgress = (exerciseId) => setProgress[exerciseId] || { weight: null, sets: [] };
-  const confirmedSetsCount = (exerciseId) => getProgress(exerciseId).sets.length;
+  const getProgress = (exerciseId: number | string) => setProgress[exerciseId] || { weight: null, sets: [] };
+  const confirmedSetsCount = (exerciseId: number | string) => getProgress(exerciseId).sets.length;
 
-  const handleRepsChange = (exerciseId, setIndex, value) => {
+  const handleRepsChange = (exerciseId: number | string, setIndex: number, value: string) => {
     setRepsInput(prev => ({
       ...prev,
       [exerciseId]: { ...(prev[exerciseId] || {}), [setIndex]: value }
     }));
   };
 
-  const handleConfirmSet = (exercise, setIndex) => {
+  const handleConfirmSet = (exercise: Exercise, setIndex: number) => {
     const reps = repsInput[exercise.id]?.[setIndex] || null;
     const completed = onConfirmSet(selectedPlan, exercise, setIndex, reps);
     if (completed) setExpanded(prev => ({ ...prev, [exercise.id]: false }));
@@ -71,7 +94,7 @@ export default function WorkoutView({
     });
   };
 
-  const handleUnconfirmSet = (exercise, setIndex) => {
+  const handleUnconfirmSet = (exercise: Exercise, setIndex: number) => {
     const reps = onUnconfirmSet(exercise.id, setIndex);
     if (reps != null) {
       setRepsInput(prev => ({
@@ -81,7 +104,7 @@ export default function WorkoutView({
     }
   };
 
-  const handleCompleteExercise = (exercise) => {
+  const handleCompleteExercise = (exercise: Exercise) => {
     const setsData = Array.from({ length: exercise.sets }, (_, i) => repsInput[exercise.id]?.[i] || null);
     onCompleteExercise(selectedPlan, exercise, setsData);
     setExpanded(prev => ({ ...prev, [exercise.id]: false }));
@@ -89,19 +112,19 @@ export default function WorkoutView({
     setRepsInput(prev => { const next = { ...prev }; delete next[exercise.id]; return next; });
   };
 
-  const handleUndo = (exercise) => {
+  const handleUndo = (exercise: Exercise) => {
     const record = todayRecords.find(r => r.exerciseId === exercise.id || r.exerciseName === exercise.name);
     onUndoExercise(selectedPlan, exercise);
     setWorkoutFinished(false);
     setExpanded(prev => ({ ...prev, [exercise.id]: true }));
     if (record?.completedSets) {
-      const prefilled = {};
+      const prefilled: Record<number, string> = {};
       record.completedSets.forEach((set, i) => { if (set?.reps != null) prefilled[i] = String(set.reps); });
       setRepsInput(prev => ({ ...prev, [exercise.id]: prefilled }));
     }
   };
 
-  const handleImportExercise = (exercise, sourcePlanName) => {
+  const handleImportExercise = (exercise: Exercise, sourcePlanName: string) => {
     const imported = { ...exercise, id: `sub-${exercise.id}-${tempIdRef.current++}`, _substitute: true, _sourcePlanName: sourcePlanName, _originalName: exercise.name };
     onAddSubstitute(imported);
     setExpanded(prev => ({ ...prev, [imported.id]: true }));
@@ -118,24 +141,24 @@ export default function WorkoutView({
     setShowPicker(false);
   };
 
-  const getRecordSets = (exercise) => {
+  const getRecordSets = (exercise: Exercise) => {
     const record = todayRecords.find(r => r.exerciseId === exercise.id || r.exerciseName === exercise.name);
     return record?.completedSets || [];
   };
 
-  const getRecordWeight = (exercise) => {
+  const getRecordWeight = (exercise: Exercise) => {
     const record = todayRecords.find(r => r.exerciseId === exercise.id || r.exerciseName === exercise.name);
     return record?.weight;
   };
 
-  const getLastWorkoutRecord = (exercise) => {
+  const getLastWorkoutRecord = (exercise: Exercise) => {
     return lastWorkoutRecordsByExerciseName?.[exercise.name] || null;
   };
 
-  const getTotalReps = (sets = []) =>
+  const getTotalReps = (sets: Array<{ reps: number | null }> = []) =>
     sets.reduce((acc, set) => acc + (set?.reps != null ? Number(set.reps) || 0 : 0), 0);
 
-  const getProgressionStatus = (exercise) => {
+  const getProgressionStatus = (exercise: Exercise) => {
     const previous = getLastWorkoutRecord(exercise);
     const currentSets = getRecordSets(exercise);
 

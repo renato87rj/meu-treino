@@ -7,7 +7,12 @@ const tabs = [
   { id: 'history', label: 'Histórico', Icon: CalendarDays  },
 ];
 
-export default function TabBar({ view, onChangeView }) {
+interface Props {
+  view: string;
+  onChangeView: (view: string) => void;
+}
+
+export default function TabBar({ view, onChangeView }: Props) {
   return (
     <nav
       className="fixed bottom-0 left-0 right-0 z-40 grid grid-cols-3 border-t border-purple-500/10"

@@ -1,9 +1,39 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { ClipboardList, Copy, Trash2, Edit2, Save, X, Plus, Dumbbell, MoreVertical, GripVertical, Clock } from 'lucide-react';
 import ExerciseAutocomplete from './ExerciseAutocomplete';
+import type { WorkoutPlan, Exercise } from '../../types/workout';
 
-export default function PlansView({ 
-  workoutPlans, 
+interface ExerciseForm {
+  name: string;
+  sets: string;
+  reps: string;
+  weight: string;
+}
+
+interface Toast {
+  type: 'success' | 'error';
+  message: string;
+}
+
+interface Props {
+  workoutPlans: WorkoutPlan[];
+  showAddPlan: boolean;
+  onSelectPlanForWorkout: (plan: WorkoutPlan) => void;
+  onEditPlanName: (planId: number, name: string) => boolean;
+  onDuplicatePlan: (plan: WorkoutPlan) => void;
+  onDeletePlan: (planId: number) => void;
+  onCreatePlan: (name: string) => boolean;
+  onCancelAdd: () => void;
+  onAddExercise: (planId: number, exercise: ExerciseForm) => boolean;
+  onEditExercise: (planId: number, exercise: Exercise) => boolean;
+  onDeleteExercise: (planId: number, exerciseId: number | string) => void;
+  onDuplicateExercise: (planId: number, exercise: Exercise) => void;
+  onMoveExercise: (planId: number, exerciseId: number | string, direction: string) => void;
+  onAddPlan: () => void;
+}
+
+export default function PlansView({
+  workoutPlans,
   showAddPlan,
   onSelectPlanForWorkout,
   onEditPlanName,
@@ -16,30 +46,30 @@ export default function PlansView({
   onDeleteExercise,
   onDuplicateExercise,
   onMoveExercise,
-  onAddPlan
-}) {
+  onAddPlan,
+}: Props) {
   const [newPlanName, setNewPlanName] = useState('');
-  const [expandedPlan, setExpandedPlan] = useState(null);
-  const [showAddExerciseForm, setShowAddExerciseForm] = useState(null);
-  const [editingExercise, setEditingExercise] = useState(null);
-  const [editingPlanId, setEditingPlanId] = useState(null);
+  const [expandedPlan, setExpandedPlan] = useState<number | null>(null);
+  const [showAddExerciseForm, setShowAddExerciseForm] = useState<number | null>(null);
+  const [editingExercise, setEditingExercise] = useState<Exercise | null>(null);
+  const [editingPlanId, setEditingPlanId] = useState<number | null>(null);
   const [editingPlanName, setEditingPlanName] = useState('');
-  const [openMenuId, setOpenMenuId] = useState(null);
-  const [openExerciseMenu, setOpenExerciseMenu] = useState(null);
-  const [toast, setToast] = useState(null);
-  const [newExercise, setNewExercise] = useState({
+  const [openMenuId, setOpenMenuId] = useState<number | null>(null);
+  const [openExerciseMenu, setOpenExerciseMenu] = useState<string | null>(null);
+  const [toast, setToast] = useState<Toast | null>(null);
+  const [newExercise, setNewExercise] = useState<ExerciseForm>({
     name: '',
     sets: '',
     reps: '',
     weight: ''
   });
   const previousPlansCount = useRef(workoutPlans.length);
-  const menuRefs = useRef({});
-  const exerciseMenuRefs = useRef({});
-  const toastTimeoutRef = useRef(null);
-  const longPressTimeoutRef = useRef(null);
-  const dragStateRef = useRef({ planId: null, exerciseId: null, fromIndex: -1, toIndex: -1, pointerId: null });
-  const [draggingKey, setDraggingKey] = useState(null);
+  const menuRefs = useRef<Record<number, HTMLDivElement>>({});
+  const exerciseMenuRefs = useRef<Record<string, HTMLDivElement>>({});
+  const toastTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const longPressTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const dragStateRef = useRef<{ planId: number | null; exerciseId: number | string | null; fromIndex: number; toIndex: number; pointerId: number | null }>({ planId: null, exerciseId: null, fromIndex: -1, toIndex: -1, pointerId: null });
+  const [draggingKey, setDraggingKey] = useState<string | null>(null);
 
   useEffect(() => {
     return () => {
@@ -50,7 +80,7 @@ export default function PlansView({
 
   // Nomes únicos de exercícios já usados pelo usuário
   const userExerciseNames = useMemo(() => {
-    const names = new Set();
+    const names = new Set<string>();
     workoutPlans.forEach(plan => plan.exercises.forEach(ex => names.add(ex.name)));
     return [...names];
   }, [workoutPlans]);
@@ -76,7 +106,7 @@ export default function PlansView({
     }
   };
 
-  const togglePlan = (planId) => {
+  const togglePlan = (planId: number) => {
     if (expandedPlan === planId) {
       setExpandedPlan(null);
       setShowAddExerciseForm(null);
@@ -92,7 +122,7 @@ export default function PlansView({
     setEditingExercise(null);
   };
 
-  const handleAddExercise = (planId) => {
+  const handleAddExercise = (planId: number) => {
     const ok = onAddExercise(planId, newExercise);
 
     if (toastTimeoutRef.current) clearTimeout(toastTimeoutRef.current);
@@ -107,19 +137,19 @@ export default function PlansView({
     toastTimeoutRef.current = setTimeout(() => setToast(null), 2200);
   };
 
-  const handleSaveEdit = (planId) => {
-    if (onEditExercise(planId, editingExercise)) {
+  const handleSaveEdit = (planId: number) => {
+    if (editingExercise && onEditExercise(planId, editingExercise as Exercise)) {
       setEditingExercise(null);
     }
   };
 
-  const startEditingPlanName = (plan) => {
+  const startEditingPlanName = (plan: WorkoutPlan) => {
     setEditingPlanId(plan.id);
     setEditingPlanName(plan.name);
   };
 
   const handleSavePlanName = () => {
-    if (onEditPlanName(editingPlanId, editingPlanName)) {
+    if (editingPlanId !== null && onEditPlanName(editingPlanId, editingPlanName)) {
       setEditingPlanId(null);
       setEditingPlanName('');
     }
@@ -132,10 +162,10 @@ export default function PlansView({
 
   // Fechar menu ao clicar fora
   useEffect(() => {
-    const handleClickOutside = (event) => {
+    const handleClickOutside = (event: Event) => {
       if (openMenuId !== null) {
         const menuElement = menuRefs.current[openMenuId];
-        if (menuElement && !menuElement.contains(event.target)) {
+        if (menuElement && !menuElement.contains(event.target as Node)) {
           setOpenMenuId(null);
         }
       }
@@ -155,10 +185,10 @@ export default function PlansView({
   }, [openMenuId]);
 
   useEffect(() => {
-    const handleClickOutside = (event) => {
+    const handleClickOutside = (event: Event) => {
       if (openExerciseMenu !== null) {
         const menuElement = exerciseMenuRefs.current[openExerciseMenu];
-        if (menuElement && !menuElement.contains(event.target)) {
+        if (menuElement && !menuElement.contains(event.target as Node)) {
           setOpenExerciseMenu(null);
         }
       }
@@ -177,17 +207,17 @@ export default function PlansView({
     };
   }, [openExerciseMenu]);
 
-  const toggleMenu = (planId, e) => {
+  const toggleMenu = (planId: number, e: React.MouseEvent) => {
     e.stopPropagation();
     setOpenMenuId(openMenuId === planId ? null : planId);
   };
 
-  const toggleExerciseMenu = (menuKey, e) => {
+  const toggleExerciseMenu = (menuKey: string, e: React.MouseEvent) => {
     e.stopPropagation();
     setOpenExerciseMenu(openExerciseMenu === menuKey ? null : menuKey);
   };
 
-  const handleExerciseMenuAction = (planId, exercise, action) => {
+  const handleExerciseMenuAction = (planId: number, exercise: Exercise, action: string) => {
     setOpenExerciseMenu(null);
     if (action === 'edit') {
       setEditingExercise(exercise);
@@ -198,7 +228,7 @@ export default function PlansView({
     }
   };
 
-  const startLongPressDrag = (planId, exerciseId, fromIndex, e) => {
+  const startLongPressDrag = (planId: number, exerciseId: number | string, fromIndex: number, e: React.PointerEvent<HTMLButtonElement>) => {
     e.stopPropagation();
     if (longPressTimeoutRef.current) clearTimeout(longPressTimeoutRef.current);
 
@@ -222,7 +252,7 @@ export default function PlansView({
     }
   };
 
-  const handleDragMove = (e) => {
+  const handleDragMove = (e: React.PointerEvent) => {
     if (!draggingKey) return;
     const el = document.elementFromPoint(e.clientX, e.clientY);
     const row = el?.closest?.('[data-exercise-row="true"]');
@@ -248,7 +278,7 @@ export default function PlansView({
     dragStateRef.current = { planId: null, exerciseId: null, fromIndex: -1, toIndex: -1, pointerId: null };
   };
 
-  const handleMenuAction = (planId, action) => {
+  const handleMenuAction = (planId: number, action: string) => {
     setOpenMenuId(null);
     if (action === 'edit') {
       const plan = workoutPlans.find(p => p.id === planId);
@@ -532,7 +562,7 @@ export default function PlansView({
                   if (!createdAt) return null;
                   
                   const now = new Date();
-                  const diffMs = now - createdAt;
+                  const diffMs = now.getTime() - createdAt.getTime();
                   const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
                   
                   const createdDay = String(createdAt.getDate()).padStart(2, '0');
@@ -644,7 +674,7 @@ export default function PlansView({
                                     <input
                                       type="number"
                                       value={editingExercise.sets}
-                                      onChange={(e) => setEditingExercise({...editingExercise, sets: e.target.value})}
+                                      onChange={(e) => setEditingExercise({...editingExercise!, sets: parseInt(e.target.value) || 0})}
                                       placeholder="Séries"
                                       className="bg-white/[0.05] border border-purple-500/25 rounded-[10px]
                                                  px-3 py-2 text-[13px] text-white text-center focus:outline-none focus:border-purple-400/50"
@@ -660,7 +690,7 @@ export default function PlansView({
                                     <input
                                       type="number" min="0" step="0.5"
                                       value={editingExercise.weight || ''}
-                                      onChange={(e) => setEditingExercise({...editingExercise, weight: e.target.value})}
+                                      onChange={(e) => setEditingExercise({...editingExercise!, weight: e.target.value ? parseFloat(e.target.value) : null})}
                                       placeholder="Carga"
                                       className="bg-white/[0.05] border border-purple-500/25 rounded-[10px]
                                                  px-3 py-2 text-[13px] text-white text-center placeholder:text-[#4a4568] focus:outline-none focus:border-purple-400/50"

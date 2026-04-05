@@ -1,6 +1,8 @@
 import React, { useState, useMemo } from 'react';
 import { ChevronLeft, ChevronRight, Moon, ArrowRightLeft } from 'lucide-react';
 
+import type { WorkoutPlan, WorkoutRecord } from '../../types/workout';
+
 const WEEKDAYS_SHORT = ['D','S','T','Q','Q','S','S'];
 const MONTHS = [
   'Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho',
@@ -8,31 +10,31 @@ const MONTHS = [
 ];
 const MONTHS_SHORT = ['jan','fev','mar','abr','mai','jun','jul','ago','set','out','nov','dez'];
 
-function toDateKey(date) {
+function toDateKey(date: Date): string {
   return date.toLocaleDateString('pt-BR');
 }
 
-function isSameDay(a, b) {
+function isSameDay(a: Date, b: Date): boolean {
   return a.getDate() === b.getDate() &&
     a.getMonth() === b.getMonth() &&
     a.getFullYear() === b.getFullYear();
 }
 
-function startOfWeek(date) {
+function startOfWeek(date: Date): Date {
   const d = new Date(date);
   d.setDate(d.getDate() - d.getDay());
   d.setHours(0, 0, 0, 0);
   return d;
 }
 
-function endOfWeek(date) {
+function endOfWeek(date: Date): Date {
   const d = new Date(date);
   d.setDate(d.getDate() + (6 - d.getDay()));
   d.setHours(23, 59, 59, 999);
   return d;
 }
 
-export default function HistoryView({ history, workoutPlans }) {
+export default function HistoryView({ history, workoutPlans }: { history: WorkoutRecord[]; workoutPlans: WorkoutPlan[] }) {
   const today = new Date();
   const [selectedDate, setSelectedDate] = useState(today);
   const [viewMonth, setViewMonth] = useState(today.getMonth());
@@ -61,7 +63,7 @@ export default function HistoryView({ history, workoutPlans }) {
 
     // Duração: diferença entre primeiro e último registro de cada dia
     let totalMinutes = 0;
-    const recordsByDay = {};
+    const recordsByDay: Record<string, WorkoutRecord[]> = {};
     weekRecords.forEach(r => {
       const dk = new Date(r.date).toLocaleDateString('pt-BR');
       if (!recordsByDay[dk]) recordsByDay[dk] = [];
@@ -70,7 +72,7 @@ export default function HistoryView({ history, workoutPlans }) {
     Object.values(recordsByDay).forEach(dayRecs => {
       // Se o registro já tem durationMinutes, usar
       const withDuration = dayRecs.find(r => r.durationMinutes != null);
-      if (withDuration) { totalMinutes += withDuration.durationMinutes; return; }
+      if (withDuration) { totalMinutes += withDuration.durationMinutes!; return; }
       const times = dayRecs.map(r => new Date(r.date).getTime()).sort((a, b) => a - b);
       if (times.length >= 2) {
         totalMinutes += Math.max(1, Math.round((times[times.length - 1] - times[0]) / 60000));
@@ -109,7 +111,7 @@ export default function HistoryView({ history, workoutPlans }) {
     const dayRecords = history.filter(r =>
       new Date(r.date).toLocaleDateString('pt-BR') === dateKey
     );
-    const planMap = {};
+    const planMap: Record<string, { planId: number; planName: string; records: WorkoutRecord[] }> = {};
     dayRecords.forEach(record => {
       const key = record.planId;
       if (!planMap[key]) {
@@ -307,10 +309,10 @@ export default function HistoryView({ history, workoutPlans }) {
         <div className="flex items-center justify-between mb-3">
           <h3 className="text-[13px] font-semibold text-white">{formatSelectedDate()}</h3>
           {hasRecords && (() => {
-            const times = dayRecords.map(r => new Date(r.date));
+            const times = dayRecords.map(r => new Date(r.date).getTime());
             const earliest = new Date(Math.min(...times));
             const latest = new Date(Math.max(...times));
-            const fmt = d => `${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;
+            const fmt = (d: Date) => `${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;
             return times.length >= 2 && earliest.getTime() !== latest.getTime() ? (
               <span className="text-[11px] text-[#4a4568]">
                 {fmt(earliest)} – {fmt(latest)}

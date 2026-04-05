@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect, useMemo } from 'react';
 import Fuse from 'fuse.js';
-import exerciseDatabase from '../data/exerciseDatabase';
+import exerciseDatabase from '../../data/exerciseDatabase';
 
 /**
  * Componente de autocomplete para nomes de exercícios.
@@ -12,26 +12,40 @@ import exerciseDatabase from '../data/exerciseDatabase';
  * @param {string} className - Classes CSS do input
  * @param {string[]} userExercises - Nomes de exercícios já usados pelo usuário
  */
+interface ExerciseItem {
+  name: string;
+  group: string;
+  isUser?: boolean;
+}
+
+interface Props {
+  value: string;
+  onChange: (value: string) => void;
+  placeholder?: string;
+  className?: string;
+  userExercises?: string[];
+}
+
 export default function ExerciseAutocomplete({
   value,
   onChange,
   placeholder = 'Nome do exercício',
   className = '',
   userExercises = [],
-}) {
+}: Props) {
   const [isOpen, setIsOpen] = useState(false);
   const [highlightIndex, setHighlightIndex] = useState(-1);
   const [suppressAutoOpen, setSuppressAutoOpen] = useState(false);
   const [manuallyClosed, setManuallyClosed] = useState(false);
-  const wrapperRef = useRef(null);
-  const listRef = useRef(null);
-  const inputRef = useRef(null);
+  const wrapperRef = useRef<HTMLDivElement>(null);
+  const listRef = useRef<HTMLUListElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
 
   // Monta a lista combinada: exercícios do usuário primeiro, depois do banco
   const allExercises = useMemo(() => {
     const userSet = new Set(userExercises.map(n => n.toLowerCase()));
-    const userItems = userExercises.map(name => ({ name, group: 'Meus exercícios', isUser: true }));
-    const dbFiltered = exerciseDatabase.filter(ex => !userSet.has(ex.name.toLowerCase()));
+    const userItems: ExerciseItem[] = userExercises.map(name => ({ name, group: 'Meus exercícios', isUser: true }));
+    const dbFiltered: ExerciseItem[] = exerciseDatabase.filter((ex: ExerciseItem) => !userSet.has(ex.name.toLowerCase()));
     return [...userItems, ...dbFiltered];
   }, [userExercises]);
 
@@ -60,8 +74,8 @@ export default function ExerciseAutocomplete({
 
   // Fecha ao clicar fora
   useEffect(() => {
-    const handleClickOutside = (e) => {
-      if (wrapperRef.current && !wrapperRef.current.contains(e.target)) {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (wrapperRef.current && !wrapperRef.current.contains(e.target as Node)) {
         setIsOpen(false);
         setManuallyClosed(true);
         setHighlightIndex(-1);
@@ -79,7 +93,7 @@ export default function ExerciseAutocomplete({
     }
   }, [highlightIndex]);
 
-  const handleSelect = (name) => {
+  const handleSelect = (name: string) => {
     setSuppressAutoOpen(true);
     setManuallyClosed(true);
     onChange(name);
@@ -87,7 +101,7 @@ export default function ExerciseAutocomplete({
     setHighlightIndex(-1);
   };
 
-  const handleKeyDown = (e) => {
+  const handleKeyDown = (e: React.KeyboardEvent) => {
     if (!isOpen || results.length === 0) return;
 
     if (e.key === 'ArrowDown') {
