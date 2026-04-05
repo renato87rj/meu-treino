@@ -115,12 +115,15 @@ export default function HistoryView({ history, workoutPlans }: { history: Workou
     dayRecords.forEach(record => {
       const key = record.planId;
       if (!planMap[key]) {
-        planMap[key] = { planId: record.planId, planName: record.planName, records: [] };
+        // Buscar nome atual do plano, fallback para nome salvo no histórico
+        const currentPlan = workoutPlans.find(p => p.id === record.planId);
+        const currentPlanName = currentPlan?.name || record.planName;
+        planMap[key] = { planId: record.planId, planName: currentPlanName, records: [] };
       }
       planMap[key].records.push(record);
     });
     return { dayRecords, planMap };
-  }, [history, selectedDate]);
+  }, [history, selectedDate, workoutPlans]);
 
   /* ── Células do calendário ── */
   const calendarDays = useMemo(() => {
