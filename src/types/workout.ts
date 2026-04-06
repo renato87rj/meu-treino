@@ -19,6 +19,9 @@ export interface WorkoutPlan {
 
 export interface CompletedSet {
   reps: number | null;
+  weight: number | null;
+  completed: boolean;
+  timestamp: string;
 }
 
 export interface WorkoutRecord {

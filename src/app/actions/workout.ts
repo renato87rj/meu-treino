@@ -81,28 +81,29 @@ function rowToRecord(row: {
 }): WorkoutRecord {
   // Validate completed_sets array
   let completedSets: CompletedSet[];
-  try {
-    if (!Array.isArray(row.completed_sets)) {
-      throw new Error('Completed sets must be an array');
-    }
-    completedSets = row.completed_sets.map((set, index) => {
-      if (!set || typeof set !== 'object') {
-        throw new Error(`Completed set at index ${index} is not an object`);
-      }
-      const completedSet = set as any;
-      if (!completedSet.reps) {
-        throw new Error(`Completed set at index ${index} missing reps field`);
-      }
-      return {
-        reps: completedSet.reps,
-        weight: completedSet.weight ? Number(completedSet.weight) : null,
-        completed: completedSet.completed ?? true,
-        timestamp: completedSet.timestamp ? String(completedSet.timestamp) : new Date().toISOString()
-      };
-    });
-  } catch (error) {
-    console.error('Invalid completed_sets data in record:', row.id, error);
-    completedSets = []; // Fallback to empty array
+  if (!Array.isArray(row.completed_sets)) {
+    console.warn('Invalid completed_sets data in record:', row.id, 'Expected array, got:', typeof row.completed_sets);
+    completedSets = [];
+  } else {
+    completedSets = row.completed_sets
+      .map((set, index) => {
+        if (!set || typeof set !== 'object') {
+          console.warn(`Skipping invalid completed set at index ${index} in record ${row.id}: not an object`);
+          return null;
+        }
+        const completedSet = set as any;
+        if (!completedSet.reps) {
+          console.warn(`Skipping completed set at index ${index} in record ${row.id}: missing reps field`);
+          return null;
+        }
+        return {
+          reps: completedSet.reps,
+          weight: completedSet.weight ? Number(completedSet.weight) : null,
+          completed: completedSet.completed ?? true,
+          timestamp: completedSet.timestamp ? String(completedSet.timestamp) : new Date().toISOString()
+        };
+      })
+      .filter((set): set is CompletedSet => set !== null);
   }
 
   return {
