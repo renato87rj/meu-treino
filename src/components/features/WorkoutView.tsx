@@ -6,19 +6,19 @@ import type { WorkoutPlan, Exercise, WorkoutRecord, SetProgressMap } from '../..
 interface Props {
   selectedPlan: WorkoutPlan | null;
   allPlans: WorkoutPlan[];
-  completedTodayIds: Set<number | string>;
+  completedTodayIds: Set<string>;
   completedTodayNames: Set<string>;
   todayRecords: WorkoutRecord[];
   lastWorkoutRecordsByExerciseName: Record<string, WorkoutRecord>;
   setProgress: SetProgressMap;
   onConfirmSet: (plan: WorkoutPlan, exercise: Exercise, setIndex: number, reps: string | null) => boolean;
-  onUnconfirmSet: (exerciseId: number | string, setIndex: number) => number | null;
-  onUpdateWeight: (exerciseId: number | string, weight: string) => void;
+  onUnconfirmSet: (exerciseId: string, setIndex: number) => number | null;
+  onUpdateWeight: (exerciseId: string, weight: string) => void;
   onCompleteExercise: (plan: WorkoutPlan, exercise: Exercise, setsData: (string | null)[]) => boolean;
   onUndoExercise: (plan: WorkoutPlan, exercise: Exercise) => void;
   substituteExercises: Exercise[];
   onAddSubstitute: (exercise: Exercise) => void;
-  onRemoveSubstitute: (exerciseId: number | string) => void;
+  onRemoveSubstitute: (exerciseId: string) => void;
   onStartRestTimer: (seconds?: number | null) => void;
   onFinishWorkout: () => void;
   workoutFinished: boolean;
@@ -46,8 +46,8 @@ export default function WorkoutView({
   workoutFinished,
   setWorkoutFinished,
 }: Props) {
-  const [expanded, setExpanded] = useState<Record<number | string, boolean>>({});
-  const [repsInput, setRepsInput] = useState<Record<number | string, Record<number, string>>>({});
+  const [expanded, setExpanded] = useState<Record<string, boolean>>({});
+  const [repsInput, setRepsInput] = useState<Record<string, Record<number, string>>>({});
   const [showPicker, setShowPicker] = useState(false);
   const [pickerTab, setPickerTab] = useState('plans');
   const [pickerSearch, setPickerSearch] = useState('');
@@ -65,17 +65,17 @@ export default function WorkoutView({
 
   const otherPlans = (allPlans || []).filter(p => p.id !== selectedPlan.id);
 
-  const toggleExpand = (exerciseId: number | string) => {
+  const toggleExpand = (exerciseId: string) => {
     setExpanded(prev => ({ ...prev, [exerciseId]: !prev[exerciseId] }));
   };
 
   const isCompleted = (exercise: Exercise) =>
     completedTodayIds.has(exercise.id) || completedTodayNames.has(exercise.name);
 
-  const getProgress = (exerciseId: number | string) => setProgress[exerciseId] || { weight: null, sets: [] };
-  const confirmedSetsCount = (exerciseId: number | string) => getProgress(exerciseId).sets.length;
+  const getProgress = (exerciseId: string) => setProgress[exerciseId] || { weight: null, sets: [] };
+  const confirmedSetsCount = (exerciseId: string) => getProgress(exerciseId).sets.length;
 
-  const handleRepsChange = (exerciseId: number | string, setIndex: number, value: string) => {
+  const handleRepsChange = (exerciseId: string, setIndex: number, value: string) => {
     setRepsInput(prev => ({
       ...prev,
       [exerciseId]: { ...(prev[exerciseId] || {}), [setIndex]: value }

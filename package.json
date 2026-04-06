@@ -10,7 +10,8 @@
   },
   "dependencies": {
     "@ducanh2912/next-pwa": "^10.2.9",
-    "firebase": "^12.6.0",
+    "@supabase/ssr": "^0.10.0",
+    "@supabase/supabase-js": "^2.101.1",
     "fuse.js": "^7.1.0",
     "lucide": "^0.553.0",
     "lucide-react": "^0.553.0",

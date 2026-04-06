@@ -111,16 +111,19 @@ export default function HistoryView({ history, workoutPlans }: { history: Workou
     const dayRecords = history.filter(r =>
       new Date(r.date).toLocaleDateString('pt-BR') === dateKey
     );
-    const planMap: Record<string, { planId: number; planName: string; records: WorkoutRecord[] }> = {};
+    const planMap: Record<string, { planId: string; planName: string; records: WorkoutRecord[] }> = {};
     dayRecords.forEach(record => {
       const key = record.planId;
       if (!planMap[key]) {
-        planMap[key] = { planId: record.planId, planName: record.planName, records: [] };
+        // Buscar nome atual do plano, fallback para nome salvo no histórico
+        const currentPlan = workoutPlans.find(p => p.id === record.planId);
+        const currentPlanName = currentPlan?.name || record.planName;
+        planMap[key] = { planId: record.planId, planName: currentPlanName, records: [] };
       }
       planMap[key].records.push(record);
     });
     return { dayRecords, planMap };
-  }, [history, selectedDate]);
+  }, [history, selectedDate, workoutPlans]);
 
   /* ── Células do calendário ── */
   const calendarDays = useMemo(() => {
