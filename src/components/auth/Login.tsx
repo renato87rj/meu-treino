@@ -29,7 +29,7 @@ export default function Login() {
   // Mostrar erro se Firebase não estiver configurado
   useEffect(() => {
     if (authError && authError.includes('não está configurado')) {
-      setError('Supabase não está configurado. Configure NEXT_PUBLIC_SUPABASE_URL e NEXT_PUBLIC_SUPABASE_ANON_KEY no arquivo .env.local');
+      setError('Supabase não está configurado. Configure NEXT_PUBLIC_SUPABASE_URL e NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY no arquivo .env.local');
     }
   }, [authError]);
 
@@ -230,7 +230,7 @@ export default function Login() {
                 <div>
                   <p className="font-semibold mb-1">⚠️ Supabase não configurado</p>
                   <p className="text-yellow-200/80 text-xs mb-2">
-                    Para usar a autenticação, configure NEXT_PUBLIC_SUPABASE_URL e NEXT_PUBLIC_SUPABASE_ANON_KEY.
+                    Para usar a autenticação, configure NEXT_PUBLIC_SUPABASE_URL e NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY.
                   </p>
                   <ol className="text-yellow-200/80 text-xs list-decimal list-inside space-y-1">
                     <li>Crie um arquivo <code className="bg-yellow-900/30 px-1 rounded">.env.local</code> na raiz do projeto</li>
