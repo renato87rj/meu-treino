@@ -59,10 +59,24 @@ export default function useWorkoutSession(
     const current = setProgress[exerciseId] || { weight: exercise.weight, sets: [] };
 
     const completedSets = Array.from({ length: exercise.sets }, (_, i) => {
-      if (current.sets[i]) return current.sets[i];
+      if (current.sets[i]) {
+        // Ensure existing set has all required properties
+        const existingSet = current.sets[i] as any;
+        return {
+          reps: existingSet.reps,
+          weight: existingSet.weight ?? (typeof current.weight === 'number' ? current.weight : (current.weight === '' ? null : parseFloat(current.weight)) ?? exercise.weight),
+          completed: existingSet.completed ?? existingSet.reps !== null,
+          timestamp: existingSet.timestamp ?? new Date().toISOString()
+        };
+      }
       const raw = setsData[i];
       const reps = raw != null && raw !== '' ? (parseInt(raw) || 0) : null;
-      return { reps };
+      return {
+        reps,
+        weight: typeof current.weight === 'number' ? current.weight : (current.weight === '' ? null : parseFloat(current.weight)) ?? exercise.weight,
+        completed: reps !== null,
+        timestamp: new Date().toISOString()
+      };
     });
 
     const record: WorkoutRecord = {
