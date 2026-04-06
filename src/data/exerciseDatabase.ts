@@ -1,0 +1,187 @@
+// Banco de dados de exercícios em PT-BR organizados por grupo muscular
+
+export interface ExerciseTemplate {
+  name: string;
+  group: string;
+}
+
+const exerciseDatabase: ExerciseTemplate[] = [
+  // ── PEITO ──
+  { name: 'Supino Reto com Barra', group: 'Peito' },
+  { name: 'Supino Reto com Halteres', group: 'Peito' },
+  { name: 'Supino Inclinado com Barra', group: 'Peito' },
+  { name: 'Supino Inclinado com Halteres', group: 'Peito' },
+  { name: 'Supino Declinado com Barra', group: 'Peito' },
+  { name: 'Supino Declinado com Halteres', group: 'Peito' },
+  { name: 'Supino Reto na Máquina', group: 'Peito' },
+  { name: 'Supino Inclinado na Máquina', group: 'Peito' },
+  { name: 'Crucifixo Reto com Halteres', group: 'Peito' },
+  { name: 'Crucifixo Inclinado com Halteres', group: 'Peito' },
+  { name: 'Crucifixo na Polia', group: 'Peito' },
+  { name: 'Crossover', group: 'Peito' },
+  { name: 'Voador (Peck Deck)', group: 'Peito' },
+  { name: 'Flexão de Braço', group: 'Peito' },
+  { name: 'Flexão de Braço Inclinada', group: 'Peito' },
+  { name: 'Flexão de Braço Declinada', group: 'Peito' },
+  { name: 'Pullover com Halter', group: 'Peito' },
+  { name: 'Pullover na Polia', group: 'Peito' },
+  { name: 'Chest Press na Máquina', group: 'Peito' },
+
+  // ── COSTAS ──
+  { name: 'Puxada Frontal', group: 'Costas' },
+  { name: 'Puxada Aberta', group: 'Costas' },
+  { name: 'Puxada Fechada (Triângulo)', group: 'Costas' },
+  { name: 'Puxada Supinada', group: 'Costas' },
+  { name: 'Puxada Neutra', group: 'Costas' },
+  { name: 'Remada Curvada com Barra', group: 'Costas' },
+  { name: 'Remada Curvada com Halteres', group: 'Costas' },
+  { name: 'Remada Unilateral com Halter', group: 'Costas' },
+  { name: 'Remada Cavalinho (T-Bar)', group: 'Costas' },
+  { name: 'Remada Baixa na Polia', group: 'Costas' },
+  { name: 'Remada Alta na Polia', group: 'Costas' },
+  { name: 'Remada na Máquina', group: 'Costas' },
+  { name: 'Remada Serrote', group: 'Costas' },
+  { name: 'Barra Fixa (Pull-Up)', group: 'Costas' },
+  { name: 'Barra Fixa Supinada (Chin-Up)', group: 'Costas' },
+  { name: 'Levantamento Terra', group: 'Costas' },
+  { name: 'Levantamento Terra Romeno', group: 'Costas' },
+  { name: 'Pullover na Máquina', group: 'Costas' },
+  { name: 'Encolhimento com Barra', group: 'Costas' },
+  { name: 'Encolhimento com Halteres', group: 'Costas' },
+  { name: 'Hiperextensão Lombar', group: 'Costas' },
+
+  // ── OMBROS ──
+  { name: 'Desenvolvimento com Barra', group: 'Ombros' },
+  { name: 'Desenvolvimento com Halteres', group: 'Ombros' },
+  { name: 'Desenvolvimento Arnold', group: 'Ombros' },
+  { name: 'Desenvolvimento na Máquina', group: 'Ombros' },
+  { name: 'Elevação Lateral com Halteres', group: 'Ombros' },
+  { name: 'Elevação Lateral na Polia', group: 'Ombros' },
+  { name: 'Elevação Lateral na Máquina', group: 'Ombros' },
+  { name: 'Elevação Frontal com Halteres', group: 'Ombros' },
+  { name: 'Elevação Frontal com Barra', group: 'Ombros' },
+  { name: 'Elevação Frontal na Polia', group: 'Ombros' },
+  { name: 'Crucifixo Inverso com Halteres', group: 'Ombros' },
+  { name: 'Crucifixo Inverso na Máquina', group: 'Ombros' },
+  { name: 'Crucifixo Inverso na Polia', group: 'Ombros' },
+  { name: 'Remada Alta com Barra', group: 'Ombros' },
+  { name: 'Remada Alta com Halteres', group: 'Ombros' },
+  { name: 'Face Pull', group: 'Ombros' },
+  { name: 'Rotação Externa com Halter', group: 'Ombros' },
+
+  // ── BÍCEPS ──
+  { name: 'Rosca Direta com Barra', group: 'Bíceps' },
+  { name: 'Rosca Direta com Halteres', group: 'Bíceps' },
+  { name: 'Rosca Alternada com Halteres', group: 'Bíceps' },
+  { name: 'Rosca Martelo', group: 'Bíceps' },
+  { name: 'Rosca Concentrada', group: 'Bíceps' },
+  { name: 'Rosca Scott com Barra', group: 'Bíceps' },
+  { name: 'Rosca Scott com Halter', group: 'Bíceps' },
+  { name: 'Rosca Scott na Máquina', group: 'Bíceps' },
+  { name: 'Rosca no Banco Inclinado', group: 'Bíceps' },
+  { name: 'Rosca na Polia Baixa', group: 'Bíceps' },
+  { name: 'Rosca na Polia Alta', group: 'Bíceps' },
+  { name: 'Rosca com Barra W', group: 'Bíceps' },
+  { name: 'Rosca 21', group: 'Bíceps' },
+  { name: 'Rosca Spider', group: 'Bíceps' },
+  { name: 'Rosca Inversa', group: 'Bíceps' },
+
+  // ── TRÍCEPS ──
+  { name: 'Tríceps Pulley (Corda)', group: 'Tríceps' },
+  { name: 'Tríceps Pulley (Barra Reta)', group: 'Tríceps' },
+  { name: 'Tríceps Pulley (Barra V)', group: 'Tríceps' },
+  { name: 'Tríceps Testa com Barra', group: 'Tríceps' },
+  { name: 'Tríceps Testa com Halteres', group: 'Tríceps' },
+  { name: 'Tríceps Francês com Halter', group: 'Tríceps' },
+  { name: 'Tríceps Francês com Barra', group: 'Tríceps' },
+  { name: 'Tríceps Coice com Halter', group: 'Tríceps' },
+  { name: 'Tríceps Coice na Polia', group: 'Tríceps' },
+  { name: 'Tríceps no Banco (Mergulho)', group: 'Tríceps' },
+  { name: 'Mergulho nas Paralelas', group: 'Tríceps' },
+  { name: 'Supino Fechado', group: 'Tríceps' },
+  { name: 'Tríceps na Máquina', group: 'Tríceps' },
+
+  // ── QUADRÍCEPS ──
+  { name: 'Agachamento Livre com Barra', group: 'Quadríceps' },
+  { name: 'Agachamento no Smith', group: 'Quadríceps' },
+  { name: 'Agachamento Frontal', group: 'Quadríceps' },
+  { name: 'Agachamento Goblet', group: 'Quadríceps' },
+  { name: 'Agachamento Búlgaro', group: 'Quadríceps' },
+  { name: 'Agachamento Sumô', group: 'Quadríceps' },
+  { name: 'Agachamento Hack', group: 'Quadríceps' },
+  { name: 'Leg Press 45°', group: 'Quadríceps' },
+  { name: 'Leg Press Horizontal', group: 'Quadríceps' },
+  { name: 'Cadeira Extensora', group: 'Quadríceps' },
+  { name: 'Avanço (Passada) com Halteres', group: 'Quadríceps' },
+  { name: 'Avanço (Passada) com Barra', group: 'Quadríceps' },
+  { name: 'Avanço no Smith', group: 'Quadríceps' },
+  { name: 'Step Up', group: 'Quadríceps' },
+  { name: 'Sissy Squat', group: 'Quadríceps' },
+
+  // ── POSTERIOR DE COXA ──
+  { name: 'Mesa Flexora', group: 'Posterior' },
+  { name: 'Cadeira Flexora', group: 'Posterior' },
+  { name: 'Stiff com Barra', group: 'Posterior' },
+  { name: 'Stiff com Halteres', group: 'Posterior' },
+  { name: 'Stiff Unilateral', group: 'Posterior' },
+  { name: 'Levantamento Terra Romeno com Halteres', group: 'Posterior' },
+  { name: 'Good Morning', group: 'Posterior' },
+  { name: 'Flexora em Pé (Unilateral)', group: 'Posterior' },
+  { name: 'Nordic Curl', group: 'Posterior' },
+
+  // ── GLÚTEOS ──
+  { name: 'Hip Thrust com Barra', group: 'Glúteos' },
+  { name: 'Hip Thrust na Máquina', group: 'Glúteos' },
+  { name: 'Elevação Pélvica', group: 'Glúteos' },
+  { name: 'Abdução de Quadril na Máquina', group: 'Glúteos' },
+  { name: 'Abdução de Quadril na Polia', group: 'Glúteos' },
+  { name: 'Kickback na Polia', group: 'Glúteos' },
+  { name: 'Extensão de Quadril na Máquina', group: 'Glúteos' },
+  { name: 'Agachamento Sumô com Halter', group: 'Glúteos' },
+  { name: 'Glúteo na Máquina (Coice)', group: 'Glúteos' },
+
+  // ── ADUTORES ──
+  { name: 'Adução de Quadril na Máquina', group: 'Adutores' },
+  { name: 'Adução de Quadril na Polia', group: 'Adutores' },
+
+  // ── PANTURRILHA ──
+  { name: 'Panturrilha no Leg Press', group: 'Panturrilha' },
+  { name: 'Panturrilha em Pé na Máquina', group: 'Panturrilha' },
+  { name: 'Panturrilha Sentado na Máquina', group: 'Panturrilha' },
+  { name: 'Panturrilha no Smith', group: 'Panturrilha' },
+  { name: 'Panturrilha em Pé com Halter', group: 'Panturrilha' },
+  { name: 'Gêmeos no Hack', group: 'Panturrilha' },
+
+  // ── ABDÔMEN ──
+  { name: 'Abdominal Crunch', group: 'Abdômen' },
+  { name: 'Abdominal Infra', group: 'Abdômen' },
+  { name: 'Abdominal Oblíquo', group: 'Abdômen' },
+  { name: 'Abdominal na Máquina', group: 'Abdômen' },
+  { name: 'Abdominal na Polia', group: 'Abdômen' },
+  { name: 'Prancha Frontal', group: 'Abdômen' },
+  { name: 'Prancha Lateral', group: 'Abdômen' },
+  { name: 'Elevação de Pernas Suspenso', group: 'Abdômen' },
+  { name: 'Elevação de Pernas no Solo', group: 'Abdômen' },
+  { name: 'Russian Twist', group: 'Abdômen' },
+  { name: 'Abdominal Bicicleta', group: 'Abdômen' },
+  { name: 'Roda Abdominal (Ab Wheel)', group: 'Abdômen' },
+  { name: 'Prancha com Rotação', group: 'Abdômen' },
+
+  // ── ANTEBRAÇO ──
+  { name: 'Rosca de Punho com Barra', group: 'Antebraço' },
+  { name: 'Rosca de Punho Invertida', group: 'Antebraço' },
+  { name: 'Farmer Walk', group: 'Antebraço' },
+
+  // ── CARDIO ──
+  { name: 'Esteira', group: 'Cardio' },
+  { name: 'Bicicleta Ergométrica', group: 'Cardio' },
+  { name: 'Elíptico (Transport)', group: 'Cardio' },
+  { name: 'Escada (StairMaster)', group: 'Cardio' },
+  { name: 'Remo Ergométrico', group: 'Cardio' },
+  { name: 'Pular Corda', group: 'Cardio' },
+  { name: 'HIIT', group: 'Cardio' },
+  { name: 'Corrida ao Ar Livre', group: 'Cardio' },
+  { name: 'Caminhada', group: 'Cardio' },
+];
+
+export default exerciseDatabase;
