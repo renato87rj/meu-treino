@@ -240,17 +240,24 @@ export default function usePlans(
     const updatedPlan = workoutPlans.find(p => p.id === planId);
     if (!updatedPlan) return;
 
-    const index = updatedPlan.exercises.findIndex(ex => ex.id === exerciseId);
-    const newIndex = direction === 'up' ? index - 1 : index + 1;
+    const exercises = [...updatedPlan.exercises];
+    const currentIndex = exercises.findIndex(ex => ex.id === exerciseId);
+    
+    if (currentIndex === -1) return;
 
-    if (newIndex < 0 || newIndex >= updatedPlan.exercises.length) return;
+    // Calcular o novo índice baseado na direção
+    let newIndex = direction === 'up' ? currentIndex - 1 : currentIndex + 1;
 
-    const newExercises = [...updatedPlan.exercises];
-    [newExercises[index], newExercises[newIndex]] = [newExercises[newIndex], newExercises[index]];
+    // Validar os limites
+    if (newIndex < 0 || newIndex >= exercises.length) return;
+
+    // Remover o exercício da posição atual e inserir na nova posição
+    const [movedExercise] = exercises.splice(currentIndex, 1);
+    exercises.splice(newIndex, 0, movedExercise);
 
     const plan = {
       ...updatedPlan,
-      exercises: newExercises,
+      exercises: exercises,
       updatedAt: new Date().toISOString()
     };
 
@@ -261,6 +268,47 @@ export default function usePlans(
       syncPlan(plan);
     }
   }, [workoutPlans, userId, syncPlan, setWorkoutPlans, ignoreNextUpdateRef]);
+
+  // Nova função para movimentação direta para qualquer posição
+  const moveExerciseToPosition = useCallback((planId: string, exerciseId: string, toIndex: number) => {
+    const updatedPlan = workoutPlans.find(p => p.id === planId);
+    if (!updatedPlan) return;
+
+    const exercises = [...updatedPlan.exercises];
+    const currentIndex = exercises.findIndex(ex => ex.id === exerciseId);
+    
+    if (currentIndex === -1 || currentIndex === toIndex) return;
+    if (toIndex < 0 || toIndex >= exercises.length) return;
+
+    // Remover o exercício da posição atual e inserir na nova posição
+    const [movedExercise] = exercises.splice(currentIndex, 1);
+    exercises.splice(toIndex, 0, movedExercise);
+
+    const plan = {
+      ...updatedPlan,
+      exercises: exercises,
+      updatedAt: new Date().toISOString()
+    };
+
+    setWorkoutPlans(prev => prev.map(p => p.id === planId ? plan : p));
+
+    if (userId) {
+      ignoreNextUpdateRef.current.plans = true;
+      syncPlan(plan);
+    }
+  }, [workoutPlans, userId, syncPlan, setWorkoutPlans, ignoreNextUpdateRef]);
+
+  const reorderPlans = useCallback((newOrder: WorkoutPlan[]) => {
+    setWorkoutPlans(newOrder);
+
+    if (userId) {
+      ignoreNextUpdateRef.current.plans = true;
+      // Sincronizar cada plano individualmente
+      newOrder.forEach(plan => {
+        syncPlan(plan);
+      });
+    }
+  }, [userId, syncPlan, setWorkoutPlans, ignoreNextUpdateRef]);
 
   const persistWeightToPlan = useCallback((planId: string, exerciseId: string, newWeight: number | string | null) => {
     if (newWeight == null || newWeight === '') return;
@@ -299,6 +347,8 @@ export default function usePlans(
     deleteExercise,
     duplicateExercise,
     moveExercise,
+    moveExerciseToPosition,
+    reorderPlans,
     persistWeightToPlan,
   };
 }

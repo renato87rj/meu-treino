@@ -7,9 +7,12 @@ export async function GET(request: Request) {
   const code = searchParams.get('code');
   const next = searchParams.get('next') ?? '/';
 
+  // Usar NEXT_PUBLIC_BASE_URL em produção, ou origin como fallback
+  const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || origin;
+
   if (!code) {
     console.error('Auth callback: No code parameter provided');
-    return NextResponse.redirect(`${origin}/login?error=missing_code`);
+    return NextResponse.redirect(`${baseUrl}/login?error=missing_code`);
   }
 
   try {
@@ -40,12 +43,12 @@ export async function GET(request: Request) {
     if (error) {
       console.error('Auth callback error:', error.message, error.status);
       const errorParam = error.status === 400 ? 'invalid_code' : 'auth_failed';
-      return NextResponse.redirect(`${origin}/login?error=${errorParam}`);
+      return NextResponse.redirect(`${baseUrl}/login?error=${errorParam}`);
     }
 
-    return NextResponse.redirect(`${origin}${next}`);
+    return NextResponse.redirect(`${baseUrl}${next}`);
   } catch (error) {
     console.error('Auth callback unexpected error:', error);
-    return NextResponse.redirect(`${origin}/login?error=server_error`);
+    return NextResponse.redirect(`${baseUrl}/login?error=server_error`);
   }
 }

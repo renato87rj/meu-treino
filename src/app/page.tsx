@@ -45,6 +45,8 @@ export default function WorkoutTracker() {
     deleteExercise,
     duplicateExercise,
     moveExercise,
+    moveExerciseToPosition,
+    reorderPlans,
     setProgress,
     updateExerciseWeight,
     confirmSet,
@@ -176,6 +178,8 @@ export default function WorkoutTracker() {
             onDeleteExercise={deleteExercise}
             onDuplicateExercise={duplicateExercise}
             onMoveExercise={moveExercise}
+            onMoveExerciseToPosition={moveExerciseToPosition}
+            onReorderPlans={reorderPlans}
             onAddPlan={() => setShowAddPlan(true)}
           />
         )}

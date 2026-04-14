@@ -1,6 +1,8 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { ClipboardList, Copy, Trash2, Edit2, Save, X, Plus, Dumbbell, MoreVertical, GripVertical, Clock } from 'lucide-react';
 import ExerciseAutocomplete from './ExerciseAutocomplete';
+import SortableExerciseList from './SortableExerciseList';
+import SortablePlansList from './SortablePlansList';
 import type { WorkoutPlan, Exercise } from '../../types/workout';
 
 interface ExerciseForm {
@@ -29,6 +31,8 @@ interface Props {
   onDeleteExercise: (planId: string, exerciseId: string) => void;
   onDuplicateExercise: (planId: string, exercise: Exercise) => void;
   onMoveExercise: (planId: string, exerciseId: string, direction: string) => void;
+  onMoveExerciseToPosition: (planId: string, exerciseId: string, toIndex: number) => void;
+  onReorderPlans: (newOrder: WorkoutPlan[]) => void;
   onAddPlan: () => void;
 }
 
@@ -46,6 +50,8 @@ export default function PlansView({
   onDeleteExercise,
   onDuplicateExercise,
   onMoveExercise,
+  onMoveExerciseToPosition,
+  onReorderPlans,
   onAddPlan,
 }: Props) {
   const [newPlanName, setNewPlanName] = useState('');
@@ -67,14 +73,10 @@ export default function PlansView({
   const menuRefs = useRef<Record<string, HTMLDivElement>>({});
   const exerciseMenuRefs = useRef<Record<string, HTMLDivElement>>({});
   const toastTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const longPressTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const dragStateRef = useRef<{ planId: string | null; exerciseId: string | null; fromIndex: number; toIndex: number; pointerId: number | null }>({ planId: null, exerciseId: null, fromIndex: -1, toIndex: -1, pointerId: null });
-  const [draggingKey, setDraggingKey] = useState<string | null>(null);
 
   useEffect(() => {
     return () => {
       if (toastTimeoutRef.current) clearTimeout(toastTimeoutRef.current);
-      if (longPressTimeoutRef.current) clearTimeout(longPressTimeoutRef.current);
     };
   }, []);
 
@@ -228,56 +230,7 @@ export default function PlansView({
     }
   };
 
-  const startLongPressDrag = (planId: string, exerciseId: string, fromIndex: number, e: React.PointerEvent<HTMLButtonElement>) => {
-    e.stopPropagation();
-    if (longPressTimeoutRef.current) clearTimeout(longPressTimeoutRef.current);
-
-    const pointerId = e.pointerId;
-    dragStateRef.current = { planId, exerciseId, fromIndex, toIndex: fromIndex, pointerId };
-
-    longPressTimeoutRef.current = setTimeout(() => {
-      setOpenExerciseMenu(null);
-      setDraggingKey(`${planId}:${exerciseId}`);
-      try {
-        e.currentTarget.setPointerCapture(pointerId);
-      } catch {
-      }
-    }, 250);
-  };
-
-  const cancelLongPress = () => {
-    if (longPressTimeoutRef.current) {
-      clearTimeout(longPressTimeoutRef.current);
-      longPressTimeoutRef.current = null;
-    }
-  };
-
-  const handleDragMove = (e: React.PointerEvent) => {
-    if (!draggingKey) return;
-    const el = document.elementFromPoint(e.clientX, e.clientY);
-    const row = el?.closest?.('[data-exercise-row="true"]');
-    if (!row) return;
-    const idx = Number(row.getAttribute('data-index'));
-    if (!Number.isNaN(idx)) dragStateRef.current.toIndex = idx;
-  };
-
-  const finishDrag = () => {
-    cancelLongPress();
-    if (!draggingKey) return;
-
-    const { planId, exerciseId, fromIndex, toIndex } = dragStateRef.current;
-    if (planId != null && exerciseId != null && fromIndex >= 0 && toIndex >= 0 && fromIndex !== toIndex) {
-      const steps = Math.abs(toIndex - fromIndex);
-      const direction = toIndex > fromIndex ? 'down' : 'up';
-      for (let i = 0; i < steps; i++) {
-        onMoveExercise(planId, exerciseId, direction);
-      }
-    }
-
-    setDraggingKey(null);
-    dragStateRef.current = { planId: null, exerciseId: null, fromIndex: -1, toIndex: -1, pointerId: null };
-  };
-
+  
   const handleMenuAction = (planId: string, action: string) => {
     setOpenMenuId(null);
     if (action === 'edit') {
@@ -466,336 +419,24 @@ export default function PlansView({
           </button>
         </div>
       ) : (
-        <div className="space-y-3">
-          {workoutPlans.map((plan) => {
-            const isExpanded = expandedPlan === plan.id;
-            
-            return (
-              <div
-                key={plan.id}
-                className={`card relative isolate p-4 mb-3 transition-all overflow-visible ${openMenuId === plan.id ? 'z-50' : ''} ${isExpanded ? 'border-purple-500/40' : ''}`}
-                style={isExpanded ? { borderColor: 'rgba(139, 92, 246, 0.4)' } : {}}
-              >
-                {/* Cabeçalho do card */}
-                <div className="flex items-center gap-3" onClick={() => togglePlan(plan.id)}>
-                  {/* Ícone da ficha */}
-                  <div className="w-10 h-10 rounded-[12px] flex items-center justify-center flex-shrink-0
-                                  bg-purple-500/20 border border-purple-500/25">
-                    <Dumbbell size={16} className="text-purple-400" />
-                  </div>
-
-                  {/* Info */}
-                  {editingPlanId === plan.id ? (
-                    <div className="flex-1 flex items-center gap-2 min-w-0" onClick={e => e.stopPropagation()}>
-                      <input
-                        type="text"
-                        value={editingPlanName}
-                        onChange={(e) => setEditingPlanName(e.target.value)}
-                        className="flex-1 min-w-0 px-3 py-1.5 bg-white/[0.05] border border-purple-500/25 rounded-[10px] text-[14px] text-white focus:outline-none focus:border-purple-400/50"
-                        autoFocus
-                      />
-                      <button onClick={handleSavePlanName}
-                        className="w-7 h-7 rounded-full flex items-center justify-center bg-green-500/15 border border-green-500/25">
-                        <Save size={12} className="text-green-400" />
-                      </button>
-                      <button onClick={cancelEditingPlanName}
-                        className="w-7 h-7 rounded-full flex items-center justify-center bg-white/5 border border-purple-500/15">
-                        <X size={12} className="text-[#7c6f9e]" />
-                      </button>
-                    </div>
-                  ) : (
-                    <div className="flex-1 min-w-0">
-                      <h3 className="text-[15px] font-semibold text-white tracking-tight truncate">
-                        {plan.name}
-                      </h3>
-                      <p className="text-[12px] text-[#7c6f9e] mt-0.5">
-                        {plan.exercises.length} exercício{plan.exercises.length !== 1 ? 's' : ''}
-                      </p>
-                    </div>
-                  )}
-
-                  {/* Ações */}
-                  {editingPlanId !== plan.id && (
-                    <div className="flex items-center gap-2 flex-shrink-0" onClick={e => e.stopPropagation()}>
-                      <button
-                        onClick={() => onSelectPlanForWorkout(plan)}
-                        className="text-[12px] font-semibold text-white bg-purple-600 px-3.5 py-1.5 rounded-full
-                                   active:scale-95 transition-transform">
-                        Treinar
-                      </button>
-                      <div className={`relative ${openMenuId === plan.id ? 'z-50' : ''}`}
-                        ref={(el) => { if (el) menuRefs.current[plan.id] = el; }}>
-                        <button
-                          onClick={(e) => toggleMenu(plan.id, e)}
-                          className="w-7 h-7 rounded-full flex items-center justify-center bg-white/5 border border-purple-500/15">
-                          <MoreVertical size={13} className="text-[#7c6f9e]" />
-                        </button>
-                        {openMenuId === plan.id && (
-                          <div className="absolute right-0 top-full mt-1 rounded-[14px] z-[60] min-w-[160px] overflow-hidden"
-                               style={{ background: 'rgba(15, 10, 30, 0.98)', border: '0.5px solid rgba(139, 92, 246, 0.25)', backdropFilter: 'blur(20px)' }}>
-                            <button onClick={() => handleMenuAction(plan.id, 'edit')}
-                              className="w-full px-4 py-3 text-left text-white active:bg-purple-600/20 flex items-center gap-3 transition-colors">
-                              <Edit2 size={14} className="text-purple-400 flex-shrink-0" />
-                              <span className="text-[13px]">Editar nome</span>
-                            </button>
-                            <button onClick={() => handleMenuAction(plan.id, 'duplicate')}
-                              className="w-full px-4 py-3 text-left text-white active:bg-purple-600/20 flex items-center gap-3 transition-colors">
-                              <Copy size={14} className="text-purple-400 flex-shrink-0" />
-                              <span className="text-[13px]">Duplicar</span>
-                            </button>
-                            <div className="border-t border-purple-500/10 mx-2"></div>
-                            <button onClick={() => handleMenuAction(plan.id, 'delete')}
-                              className="w-full px-4 py-3 text-left text-red-400 active:bg-red-500/20 flex items-center gap-3 transition-colors">
-                              <Trash2 size={14} className="flex-shrink-0" />
-                              <span className="text-[13px]">Deletar</span>
-                            </button>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  )}
-                </div>
-
-                {/* Indicador de idade da ficha */}
-                {(() => {
-                  const createdAt = plan.createdAt ? new Date(plan.createdAt) : null;
-                  if (!createdAt) return null;
-                  
-                  const now = new Date();
-                  const diffMs = now.getTime() - createdAt.getTime();
-                  const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
-                  
-                  const createdDay = String(createdAt.getDate()).padStart(2, '0');
-                  const createdMonth = String(createdAt.getMonth() + 1).padStart(2, '0');
-                  const dateLabel = `${createdDay}/${createdMonth}`;
-                  
-                  let color, bgColor, borderColor, label;
-                  if (diffDays < 45) {
-                    color = '#4ade80';
-                    bgColor = 'rgba(74, 222, 128, 0.08)';
-                    borderColor = 'rgba(74, 222, 128, 0.25)';
-                    label = null;
-                  } else if (diffDays < 90) {
-                    color = '#fbbf24';
-                    bgColor = 'rgba(251, 191, 36, 0.08)';
-                    borderColor = 'rgba(251, 191, 36, 0.25)';
-                    label = 'considere revisar';
-                  } else {
-                    color = '#f87171';
-                    bgColor = 'rgba(248, 113, 113, 0.08)';
-                    borderColor = 'rgba(248, 113, 113, 0.25)';
-                    label = 'hora de revisar';
-                  }
-                  
-                  return (
-                    <div
-                      className="flex items-center gap-2 mt-3 px-3 py-2 rounded-full"
-                      style={{ background: bgColor, border: `0.5px solid ${borderColor}` }}
-                    >
-                      <Clock size={12} style={{ color }} />
-                      <span className="text-[11px] flex-1" style={{ color }}>
-                        usada há {diffDays} dias · desde {dateLabel}
-                      </span>
-                      {label && (
-                        <span className="text-[10px]" style={{ color, opacity: 0.8 }}>
-                          {label}
-                        </span>
-                      )}
-                    </div>
-                  );
-                })()}
-
-                {/* Dots de progresso */}
-                {plan.exercises.length > 0 && !isExpanded && (
-                  <div className="flex gap-1.5 mt-2">
-                    {plan.exercises.map((ex) => (
-                      <div key={ex.id} className="w-2 h-2 rounded-full bg-[#2d1f55]" />
-                    ))}
-                  </div>
-                )}
-
-                {/* Lista expandida de exercícios */}
-                {isExpanded && (
-                  <div className="mt-3 pt-3 border-t border-purple-500/10">
-                    {/* Botão Adicionar Exercício */}
-                    {!showAddExerciseForm && (
-                      <button
-                        onClick={() => setShowAddExerciseForm(plan.id)}
-                        className="w-full mb-3 flex items-center justify-center gap-2 py-2.5 rounded-[14px]
-                                   text-[12px] font-semibold text-purple-400
-                                   border border-dashed border-purple-500/30 bg-purple-500/[0.06]
-                                   active:bg-purple-500/10 transition-colors">
-                        <Plus size={13} />
-                        adicionar exercício
-                      </button>
-                    )}
-
-                    {plan.exercises.length > 1 && (
-                      <div className="mb-3 text-center">
-                        <span className="text-[11px] text-[#4a4568]">
-                          Segure e arraste o exercício para reordenar
-                        </span>
-                      </div>
-                    )}
-
-                    {/* Lista de Exercícios */}
-                    {plan.exercises.length === 0 ? (
-                      <div className="text-center py-8">
-                        <Dumbbell className="mx-auto text-[#3a3060] mb-2" size={32} />
-                        <p className="text-[#7c6f9e] text-[13px]">Nenhum exercício</p>
-                        <p className="text-[#4a4568] text-[11px] mt-1">Adicione exercícios para começar</p>
-                      </div>
-                    ) : (
-                      <div className="space-y-0">
-                        {plan.exercises.map((exercise, index) => {
-                          const isEditing = editingExercise?.id === exercise.id;
-                          const isFirst = index === 0;
-                          const isLast = index === plan.exercises.length - 1;
-
-                          return (
-                            <div
-                              key={exercise.id}
-                              className={`flex items-center gap-3 py-3 border-b border-purple-500/[0.07] last:border-0 ${
-                                draggingKey === `${plan.id}:${exercise.id}` ? 'opacity-70' : ''
-                              }`}
-                              data-exercise-row="true"
-                              data-index={index}
-                            >
-                              {isEditing ? (
-                                <div className="flex-1 space-y-2 py-1">
-                                  <ExerciseAutocomplete
-                                    value={editingExercise.name}
-                                    onChange={(name) => setEditingExercise({...editingExercise, name})}
-                                    userExercises={userExerciseNames}
-                                    className="w-full bg-white/[0.05] border border-purple-500/25 rounded-[10px]
-                                               px-3 py-2 text-[13px] text-white focus:outline-none focus:border-purple-400/50"
-                                  />
-                                  <div className="grid grid-cols-3 gap-2">
-                                    <input
-                                      type="number"
-                                      value={editingExercise.sets}
-                                      onChange={(e) => setEditingExercise({...editingExercise!, sets: parseInt(e.target.value) || 0})}
-                                      placeholder="Séries"
-                                      className="bg-white/[0.05] border border-purple-500/25 rounded-[10px]
-                                                 px-3 py-2 text-[13px] text-white text-center focus:outline-none focus:border-purple-400/50"
-                                    />
-                                    <input
-                                      type="text"
-                                      value={editingExercise.reps}
-                                      onChange={(e) => setEditingExercise({...editingExercise, reps: e.target.value})}
-                                      placeholder="Reps"
-                                      className="bg-white/[0.05] border border-purple-500/25 rounded-[10px]
-                                                 px-3 py-2 text-[13px] text-white text-center focus:outline-none focus:border-purple-400/50"
-                                    />
-                                    <input
-                                      type="number" min="0" step="0.5"
-                                      value={editingExercise.weight || ''}
-                                      onChange={(e) => setEditingExercise({...editingExercise!, weight: e.target.value ? parseFloat(e.target.value) : null})}
-                                      placeholder="Carga"
-                                      className="bg-white/[0.05] border border-purple-500/25 rounded-[10px]
-                                                 px-3 py-2 text-[13px] text-white text-center placeholder:text-[#4a4568] focus:outline-none focus:border-purple-400/50"
-                                    />
-                                  </div>
-                                  <div className="flex gap-2">
-                                    <button 
-                                      onClick={() => handleSaveEdit(plan.id)} 
-                                      className="flex-1 bg-purple-600 text-white text-[12px] font-semibold py-2 rounded-[10px] active:scale-[0.98] transition-transform flex items-center justify-center gap-1">
-                                      <Save size={12} /> Salvar
-                                    </button>
-                                    <button 
-                                      onClick={() => setEditingExercise(null)} 
-                                      className="flex-1 bg-white/[0.05] border border-purple-500/15 text-[#7c6f9e] text-[12px] font-semibold py-2 rounded-[10px] active:scale-[0.98] transition-transform flex items-center justify-center gap-1">
-                                      <X size={12} /> Cancelar
-                                    </button>
-                                  </div>
-                                </div>
-                              ) : (
-                                <>
-                                  <button
-                                    onPointerDown={(e) => startLongPressDrag(plan.id, exercise.id, index, e)}
-                                    onPointerMove={handleDragMove}
-                                    onPointerUp={finishDrag}
-                                    onPointerCancel={finishDrag}
-                                    onPointerLeave={cancelLongPress}
-                                    onContextMenu={(e) => e.preventDefault()}
-                                    className={`w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0 border transition-all ${
-                                      draggingKey === `${plan.id}:${exercise.id}`
-                                        ? 'text-purple-200 border-purple-500/40 bg-purple-500/15'
-                                        : 'text-[#7c6f9e] border-purple-500/[0.12] bg-white/[0.04]'
-                                    }`}
-                                    aria-label="Segure e arraste para reordenar"
-                                  >
-                                    <GripVertical size={14} />
-                                  </button>
-
-                                  <div className="flex-1 min-w-0">
-                                    <div className="flex items-center gap-2 min-w-0">
-                                      <span className="text-[10px] font-semibold text-purple-300 bg-purple-500/10 border border-purple-500/20 px-2 py-0.5 rounded-full flex-shrink-0">
-                                        {index + 1}
-                                      </span>
-                                      <span className="text-[13px] text-white font-medium flex-1 truncate">{exercise.name}</span>
-                                    </div>
-                                    <div className="flex items-center gap-2 mt-1.5">
-                                      <span className="text-[12px] font-semibold text-purple-200 bg-purple-500/10 border border-purple-500/20 px-2.5 py-1 rounded-full">
-                                        {exercise.sets} séries · {exercise.reps} reps
-                                      </span>
-                                      {exercise.weight ? (
-                                        <span className="text-[10px] font-semibold text-purple-300 bg-purple-500/10 border border-purple-500/20 px-2 py-0.5 rounded-full">
-                                          {exercise.weight}kg
-                                        </span>
-                                      ) : (
-                                        <span className="text-[10px] font-semibold text-[#4a4568] bg-white/[0.04] border border-purple-500/[0.10] px-2 py-0.5 rounded-full">
-                                          sem carga
-                                        </span>
-                                      )}
-                                    </div>
-                                  </div>
-
-                                  <div className="relative flex-shrink-0" onClick={e => e.stopPropagation()}
-                                    ref={(el) => { if (el) exerciseMenuRefs.current[`${plan.id}:${exercise.id}`] = el; }}>
-                                    <button
-                                      onClick={(e) => toggleExerciseMenu(`${plan.id}:${exercise.id}`, e)}
-                                      className="w-9 h-9 rounded-full flex items-center justify-center text-[#7c6f9e] bg-white/[0.04] border border-purple-500/[0.12] active:scale-95 transition-transform"
-                                      aria-label="Abrir menu do exercício"
-                                    >
-                                      <MoreVertical size={14} />
-                                    </button>
-                                    {openExerciseMenu === `${plan.id}:${exercise.id}` && (
-                                      <div className="absolute right-0 top-full mt-1 rounded-[14px] z-[60] min-w-[190px] overflow-hidden"
-                                        style={{ background: 'rgba(15, 10, 30, 0.98)', border: '0.5px solid rgba(139, 92, 246, 0.25)', backdropFilter: 'blur(20px)' }}>
-                                        <button onClick={() => handleExerciseMenuAction(plan.id, exercise, 'edit')}
-                                          className="w-full px-4 py-3 text-left text-white active:bg-purple-600/20 flex items-center gap-3 transition-colors">
-                                          <Edit2 size={14} className="text-purple-400 flex-shrink-0" />
-                                          <span className="text-[13px]">Editar</span>
-                                        </button>
-                                        <button onClick={() => handleExerciseMenuAction(plan.id, exercise, 'duplicate')}
-                                          className="w-full px-4 py-3 text-left text-white active:bg-purple-600/20 flex items-center gap-3 transition-colors">
-                                          <Copy size={14} className="text-purple-400 flex-shrink-0" />
-                                          <span className="text-[13px]">Duplicar</span>
-                                        </button>
-                                        <div className="border-t border-purple-500/10 mx-2"></div>
-                                        <button onClick={() => handleExerciseMenuAction(plan.id, exercise, 'delete')}
-                                          className="w-full px-4 py-3 text-left text-red-400 active:bg-red-500/20 flex items-center gap-3 transition-colors">
-                                          <Trash2 size={14} className="flex-shrink-0" />
-                                          <span className="text-[13px]">Excluir</span>
-                                        </button>
-                                      </div>
-                                    )}
-                                  </div>
-                                </>
-                              )}
-                            </div>
-                          );
-                        })}
-                      </div>
-                    )}
-                  </div>
-                )}
-              </div>
-            );
-          })}
-
-        </div>
+        <SortablePlansList
+          workoutPlans={workoutPlans}
+          expandedPlan={expandedPlan}
+          editingPlanId={editingPlanId}
+          editingPlanName={editingPlanName}
+          openMenuId={openMenuId}
+          onSelectPlanForWorkout={onSelectPlanForWorkout}
+          onEditPlanName={(plan) => onEditPlanName(plan.id, plan.name)}
+          onDuplicatePlan={onDuplicatePlan}
+          onDeletePlan={onDeletePlan}
+          onSavePlanName={handleSavePlanName}
+          onCancelEditPlanName={cancelEditingPlanName}
+          setEditingPlanName={setEditingPlanName}
+          onTogglePlan={togglePlan}
+          onToggleMenu={toggleMenu}
+          menuRefs={menuRefs}
+          onReorderPlans={onReorderPlans}
+        />
       )}
 
       {/* FAB — Floating Action Button (Android style) */}

@@ -144,11 +144,12 @@ export const AuthContextProvider = ({ children }: { children: ReactNode }) => {
     }
     const supabase = createClient();
     try {
-      const origin = typeof window !== 'undefined' ? window.location.origin : '';
+      // Usar NEXT_PUBLIC_BASE_URL em produção, ou origin como fallback
+      const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || (typeof window !== 'undefined' ? window.location.origin : '');
       const { data, error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
-          redirectTo: `${origin}/auth/callback`,
+          redirectTo: `${baseUrl}/auth/callback`,
         },
       });
       if (error) return { success: false, error: error.message };

@@ -102,6 +102,8 @@ export default function useWorkoutData(userId: string | null = null) {
     deleteExercise,
     duplicateExercise,
     moveExercise,
+    moveExerciseToPosition,
+    reorderPlans,
     persistWeightToPlan,
   } = usePlans(workoutPlans, setWorkoutPlans, userId, syncPlan, syncDeletePlan, ignoreNextUpdateRef);
 
@@ -228,6 +230,8 @@ export default function useWorkoutData(userId: string | null = null) {
     deleteExercise,
     duplicateExercise,
     moveExercise,
+    moveExerciseToPosition,
+    reorderPlans,
     updateExerciseWeight,
     confirmSet,
     unconfirmSet,
