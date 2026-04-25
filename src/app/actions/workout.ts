@@ -1,7 +1,7 @@
 'use server';
 
 import { createClient } from '@/lib/supabase/server';
-import type { WorkoutPlan, WorkoutRecord, Exercise, CompletedSet } from '@/types/workout';
+import type { WorkoutPlan, WorkoutProgram, WorkoutRecord, WorkoutSession, Exercise, CompletedSet } from '@/types/workout';
 
 async function requireUser() {
   const supabase = await createClient();
@@ -19,6 +19,7 @@ function rowToPlan(row: {
   id: string;
   name: string;
   exercises: unknown;
+  program_id?: string | null;
   created_at: string;
   updated_at: string;
 }): WorkoutPlan {
@@ -53,6 +54,7 @@ function rowToPlan(row: {
 
   return {
     id: row.id,
+    programId: row.program_id ?? '',
     name: row.name,
     exercises,
     createdAt: row.created_at,
@@ -64,6 +66,8 @@ function rowToRecord(row: {
   id: string;
   plan_id: string;
   plan_name: string;
+  program_id?: string | null;
+  program_name?: string | null;
   exercise_id: string;
   exercise_name: string;
   planned_sets: number;
@@ -110,6 +114,8 @@ function rowToRecord(row: {
     id: row.id,
     planId: row.plan_id,
     planName: row.plan_name,
+    programId: row.program_id ?? undefined,
+    programName: row.program_name ?? undefined,
     exerciseId: row.exercise_id,
     exerciseName: row.exercise_name,
     plannedSets: row.planned_sets,
@@ -127,11 +133,38 @@ function rowToRecord(row: {
   };
 }
 
+export async function loadWorkoutProgramsAction(): Promise<WorkoutProgram[]> {
+  const { supabase, user } = await requireUser();
+  const { data: programs, error: pErr } = await supabase
+    .from('workout_programs')
+    .select('id,name,active,archived,created_at,updated_at')
+    .eq('user_id', user.id)
+    .order('created_at', { ascending: true });
+  if (pErr) { console.error('loadWorkoutProgramsAction', pErr); throw pErr; }
+
+  const { data: plans, error: plErr } = await supabase
+    .from('workout_plans')
+    .select('id,name,exercises,program_id,created_at,updated_at')
+    .eq('user_id', user.id)
+    .order('updated_at', { ascending: false });
+  if (plErr) { console.error('loadWorkoutProgramsAction plans', plErr); throw plErr; }
+
+  return (programs ?? []).map(pg => ({
+    id: pg.id,
+    name: pg.name,
+    active: pg.active ?? false,
+    archived: pg.archived ?? false,
+    plans: (plans ?? []).filter(p => p.program_id === pg.id).map(rowToPlan),
+    createdAt: pg.created_at,
+    updatedAt: pg.updated_at,
+  }));
+}
+
 export async function loadWorkoutPlansAction(): Promise<WorkoutPlan[]> {
   const { supabase, user } = await requireUser();
   const { data, error } = await supabase
     .from('workout_plans')
-    .select('id,name,exercises,created_at,updated_at')
+    .select('id,name,exercises,program_id,created_at,updated_at')
     .eq('user_id', user.id)
     .order('updated_at', { ascending: false });
 
@@ -142,12 +175,39 @@ export async function loadWorkoutPlansAction(): Promise<WorkoutPlan[]> {
   return (data ?? []).map(rowToPlan);
 }
 
+export async function upsertWorkoutProgramAction(program: WorkoutProgram): Promise<void> {
+  const { supabase, user } = await requireUser();
+  const { error } = await supabase.from('workout_programs').upsert(
+    {
+      id: program.id,
+      user_id: user.id,
+      name: program.name,
+      active: program.active,
+      archived: program.archived ?? false,
+      created_at: program.createdAt,
+      updated_at: program.updatedAt,
+    },
+    { onConflict: 'id' }
+  );
+  if (error) { console.error('upsertWorkoutProgramAction', error); throw error; }
+}
+
+export async function deleteWorkoutProgramAction(programId: string): Promise<void> {
+  const { supabase, user } = await requireUser();
+  const { error } = await supabase
+    .from('workout_programs')
+    .delete()
+    .eq('id', programId)
+    .eq('user_id', user.id);
+  if (error) { console.error('deleteWorkoutProgramAction', error); throw error; }
+}
+
 export async function loadWorkoutHistoryAction(): Promise<WorkoutRecord[]> {
   const { supabase, user } = await requireUser();
   const { data, error } = await supabase
     .from('workout_history')
     .select(
-      'id,plan_id,plan_name,exercise_id,exercise_name,planned_sets,planned_reps,planned_weight,weight,completed_sets,completed,substitute,source_plan_name,record_date,duration_minutes,created_at,updated_at'
+      'id,plan_id,plan_name,program_id,program_name,exercise_id,exercise_name,planned_sets,planned_reps,planned_weight,weight,completed_sets,completed,substitute,source_plan_name,record_date,duration_minutes,created_at,updated_at'
     )
     .eq('user_id', user.id)
     .order('record_date', { ascending: false });
@@ -161,25 +221,11 @@ export async function loadWorkoutHistoryAction(): Promise<WorkoutRecord[]> {
 
 export async function upsertWorkoutPlanAction(plan: WorkoutPlan): Promise<void> {
   const { supabase, user } = await requireUser();
-  
-  // Verify ownership if updating existing plan
-  if (plan.id) {
-    const { data: existingPlan } = await supabase
-      .from('workout_plans')
-      .select('id')
-      .eq('id', plan.id)
-      .eq('user_id', user.id)
-      .single();
-    
-    if (!existingPlan) {
-      throw new Error('Plan not found or access denied');
-    }
-  }
-  
   const { error } = await supabase.from('workout_plans').upsert(
     {
       id: plan.id || crypto.randomUUID(),
       user_id: user.id,
+      program_id: plan.programId || null,
       name: plan.name,
       exercises: plan.exercises,
       created_at: plan.createdAt,
@@ -208,21 +254,6 @@ export async function deleteWorkoutPlanAction(planId: string): Promise<void> {
 
 export async function upsertWorkoutHistoryAction(record: WorkoutRecord): Promise<void> {
   const { supabase, user } = await requireUser();
-  
-  // Verify ownership if updating existing record
-  if (record.id) {
-    const { data: existingRecord } = await supabase
-      .from('workout_history')
-      .select('id')
-      .eq('id', record.id)
-      .eq('user_id', user.id)
-      .single();
-    
-    if (!existingRecord) {
-      throw new Error('Record not found or access denied');
-    }
-  }
-  
   const { error } = await supabase.from('workout_history').upsert(
     {
       id: record.id || crypto.randomUUID(),
@@ -265,6 +296,60 @@ export async function deleteWorkoutHistoryAction(recordId: string): Promise<void
   }
 }
 
+export async function upsertWorkoutSessionAction(session: WorkoutSession): Promise<void> {
+  const { supabase, user } = await requireUser();
+  const { error } = await supabase.from('workout_sessions').upsert(
+    {
+      id: session.id,
+      user_id: user.id,
+      program_id: session.programId || null,
+      program_name: session.programName || null,
+      plan_id: session.planId || null,
+      plan_name: session.planName || null,
+      started_at: session.startedAt,
+      finished_at: session.finishedAt,
+      duration_minutes: session.durationMinutes,
+    },
+    { onConflict: 'id' }
+  );
+  if (error) {
+    console.error('upsertWorkoutSessionAction', error);
+    throw error;
+  }
+}
+
+export async function batchUpsertWorkoutHistoryAction(records: WorkoutRecord[]): Promise<void> {
+  if (records.length === 0) return;
+  const { supabase, user } = await requireUser();
+  const rows = records.map(record => ({
+    id: record.id,
+    user_id: user.id,
+    program_id: record.programId ?? null,
+    program_name: record.programName ?? null,
+    plan_id: record.planId,
+    plan_name: record.planName,
+    exercise_id: record.exerciseId,
+    exercise_name: record.exerciseName,
+    planned_sets: record.plannedSets,
+    planned_reps: record.plannedReps,
+    planned_weight: record.plannedWeight,
+    weight: record.weight,
+    completed_sets: record.completedSets,
+    completed: record.completed,
+    substitute: record.substitute ?? false,
+    source_plan_name: record.sourcePlanName ?? null,
+    record_date: record.date,
+    duration_minutes: record.durationMinutes ?? null,
+    created_at: record.createdAt,
+    updated_at: record.updatedAt,
+  }));
+  const { error } = await supabase.from('workout_history').upsert(rows, { onConflict: 'id' });
+  if (error) {
+    console.error('batchUpsertWorkoutHistoryAction', error);
+    throw error;
+  }
+}
+
 export async function syncAllDataAction(
   workoutPlans: WorkoutPlan[],
   history: WorkoutRecord[]
@@ -276,6 +361,7 @@ export async function syncAllDataAction(
       {
         id: plan.id,
         user_id: user.id,
+        program_id: plan.programId || null,
         name: plan.name,
         exercises: plan.exercises,
         created_at: plan.createdAt,

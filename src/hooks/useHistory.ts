@@ -9,7 +9,7 @@ export default function useHistory(
   setHistory: React.Dispatch<React.SetStateAction<WorkoutRecord[]>>,
   userId: string | null,
   syncHistory: (record: WorkoutRecord) => void,
-  syncDeleteHistory: (recordId: string) => void,
+  syncDeleteHistory: (recordId: string) => Promise<boolean>,
   ignoreNextUpdateRef: IgnoreRef
 ) {
 
@@ -21,13 +21,13 @@ export default function useHistory(
     });
   }, [history]);
 
-  const removeRecord = useCallback((recordId: string) => {
-    setHistory(prev => prev.filter(r => r.id !== recordId));
-
+  const removeRecord = useCallback(async (recordId: string) => {
     if (userId) {
-      syncDeleteHistory(recordId);
+      const ok = await syncDeleteHistory(recordId);
+      if (!ok) return false;
     }
 
+    setHistory(prev => prev.filter(r => r.id !== recordId));
     return true;
   }, [userId, syncDeleteHistory, setHistory]);
 

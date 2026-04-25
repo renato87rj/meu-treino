@@ -11,13 +11,13 @@ export default function usePlans(
   setWorkoutPlans: React.Dispatch<React.SetStateAction<WorkoutPlan[]>>,
   userId: string | null,
   syncPlan: (plan: WorkoutPlan) => void,
-  syncDeletePlan: (planId: string) => void,
+  syncDeletePlan: (planId: string) => Promise<boolean>,
   ignoreNextUpdateRef: IgnoreRef
 ) {
   const { showToast } = useToast();
   const { confirm } = useConfirm();
 
-  const createPlan = useCallback((name: string) => {
+  const createPlan = useCallback((name: string, programId = '') => {
     if (!name.trim()) {
       showToast('Digite um nome para a ficha', 'warning');
       return false;
@@ -25,6 +25,7 @@ export default function usePlans(
 
     const plan = {
       id: crypto.randomUUID(),
+      programId,
       name: name,
       exercises: [],
       createdAt: new Date().toISOString(),
@@ -102,12 +103,15 @@ export default function usePlans(
 
     if (!confirmed) return false;
 
-    setWorkoutPlans(prev => prev.filter(plan => plan.id !== planId));
-
     if (userId) {
-      syncDeletePlan(planId);
+      const ok = await syncDeletePlan(planId);
+      if (!ok) {
+        showToast('Erro ao excluir ficha. Tente novamente.', 'error');
+        return false;
+      }
     }
 
+    setWorkoutPlans(prev => prev.filter(plan => plan.id !== planId));
     showToast('Ficha deletada', 'info');
     return true;
   };

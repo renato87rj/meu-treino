@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { Dumbbell, RotateCcw, Check, Plus, X, Search, ArrowRightLeft, TrendingUp, TrendingDown, Minus } from 'lucide-react';
 import ExerciseAutocomplete from './ExerciseAutocomplete';
 import type { WorkoutPlan, Exercise, WorkoutRecord, SetProgressMap } from '../../types/workout';
@@ -11,6 +11,7 @@ interface Props {
   todayRecords: WorkoutRecord[];
   lastWorkoutRecordsByExerciseName: Record<string, WorkoutRecord>;
   setProgress: SetProgressMap;
+  draftStartedAt: string | null;
   onConfirmSet: (plan: WorkoutPlan, exercise: Exercise, setIndex: number, reps: string | null) => boolean;
   onUnconfirmSet: (exerciseId: string, setIndex: number) => number | null;
   onUpdateWeight: (exerciseId: string, weight: string) => void;
@@ -28,6 +29,7 @@ interface Props {
 export default function WorkoutView({
   selectedPlan,
   allPlans,
+  draftStartedAt,
   completedTodayIds,
   completedTodayNames,
   todayRecords,
@@ -46,6 +48,28 @@ export default function WorkoutView({
   workoutFinished,
   setWorkoutFinished,
 }: Props) {
+  const [elapsed, setElapsed] = useState(0);
+  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  useEffect(() => {
+    if (!draftStartedAt) {
+      timerRef.current && clearInterval(timerRef.current);
+      timerRef.current = null;
+      return;
+    }
+    const calc = () => Math.floor((Date.now() - new Date(draftStartedAt).getTime()) / 1000);
+    timerRef.current = setInterval(() => setElapsed(calc()), 1000);
+    return () => { if (timerRef.current) clearInterval(timerRef.current); };
+  }, [draftStartedAt]);
+
+  const formatElapsed = (secs: number) => {
+    const h = Math.floor(secs / 3600);
+    const m = Math.floor((secs % 3600) / 60);
+    const s = secs % 60;
+    if (h > 0) return `${h}:${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
+    return `${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
+  };
+
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});
   const [repsInput, setRepsInput] = useState<Record<string, Record<number, string>>>({});
   const [showPicker, setShowPicker] = useState(false);
@@ -226,12 +250,24 @@ export default function WorkoutView({
                 />
               </div>
             )}
+            <button
+              onClick={onFinishWorkout}
+              className="mt-4 w-full py-3 rounded-[14px] bg-green-600 text-white text-[14px] font-semibold active:scale-95 transition-transform">
+              Salvar e concluir treino
+            </button>
           </>
         ) : (
           <>
-            <p className="text-[10px] text-purple-400 font-semibold tracking-[.8px] uppercase mb-2">
-              progresso de hoje
-            </p>
+            <div className="flex items-center justify-between mb-2">
+              <p className="text-[10px] text-purple-400 font-semibold tracking-[.8px] uppercase">
+                progresso de hoje
+              </p>
+              {draftStartedAt && (
+                <span className="text-[12px] font-mono font-semibold text-purple-300 bg-purple-500/10 px-2 py-0.5 rounded-lg">
+                  ⏱ {formatElapsed(elapsed)}
+                </span>
+              )}
+            </div>
             <div className="flex items-baseline gap-2">
               <span className="text-[34px] font-bold text-white tracking-tight leading-none">
                 {completedCount}

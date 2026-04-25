@@ -2,13 +2,13 @@ import React, { useState, useMemo } from 'react';
 import { ChevronLeft, ChevronRight, Moon, ArrowRightLeft } from 'lucide-react';
 
 import type { WorkoutPlan, WorkoutRecord } from '../../types/workout';
+import { calcProgression } from '../../utils/progression';
 
 const WEEKDAYS_SHORT = ['D','S','T','Q','Q','S','S'];
 const MONTHS = [
   'Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho',
   'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'
 ];
-const MONTHS_SHORT = ['jan','fev','mar','abr','mai','jun','jul','ago','set','out','nov','dez'];
 
 function toDateKey(date: Date): string {
   return date.toLocaleDateString('pt-BR');
@@ -18,20 +18,6 @@ function isSameDay(a: Date, b: Date): boolean {
   return a.getDate() === b.getDate() &&
     a.getMonth() === b.getMonth() &&
     a.getFullYear() === b.getFullYear();
-}
-
-function startOfWeek(date: Date): Date {
-  const d = new Date(date);
-  d.setDate(d.getDate() - d.getDay());
-  d.setHours(0, 0, 0, 0);
-  return d;
-}
-
-function endOfWeek(date: Date): Date {
-  const d = new Date(date);
-  d.setDate(d.getDate() + (6 - d.getDay()));
-  d.setHours(23, 59, 59, 999);
-  return d;
 }
 
 export default function HistoryView({ history, workoutPlans }: { history: WorkoutRecord[]; workoutPlans: WorkoutPlan[] }) {
@@ -46,63 +32,6 @@ export default function HistoryView({ history, workoutPlans }: { history: Workou
       days.add(new Date(record.date).toLocaleDateString('pt-BR'));
     });
     return days;
-  }, [history]);
-
-  /* ── Dados da semana atual ── */
-  const weekData = useMemo(() => {
-    const ws = startOfWeek(today);
-    const we = endOfWeek(today);
-
-    const weekRecords = history.filter(r => {
-      const d = new Date(r.date);
-      return d >= ws && d <= we;
-    });
-
-    const totalSets = weekRecords.reduce((acc, r) => acc + (r.completedSets?.length ?? 0), 0);
-    const totalSessions = new Set(weekRecords.map(r => new Date(r.date).toLocaleDateString('pt-BR'))).size;
-
-    // Duração: diferença entre primeiro e último registro de cada dia
-    let totalMinutes = 0;
-    const recordsByDay: Record<string, WorkoutRecord[]> = {};
-    weekRecords.forEach(r => {
-      const dk = new Date(r.date).toLocaleDateString('pt-BR');
-      if (!recordsByDay[dk]) recordsByDay[dk] = [];
-      recordsByDay[dk].push(r);
-    });
-    Object.values(recordsByDay).forEach(dayRecs => {
-      // Se o registro já tem durationMinutes, usar
-      const withDuration = dayRecs.find(r => r.durationMinutes != null);
-      if (withDuration) { totalMinutes += withDuration.durationMinutes!; return; }
-      const times = dayRecs.map(r => new Date(r.date).getTime()).sort((a, b) => a - b);
-      if (times.length >= 2) {
-        totalMinutes += Math.max(1, Math.round((times[times.length - 1] - times[0]) / 60000));
-      }
-    });
-
-    // Séries por dia (0=dom … 6=sáb)
-    const setsByDay = Array(7).fill(0);
-    weekRecords.forEach(r => {
-      setsByDay[new Date(r.date).getDay()] += r.completedSets?.length ?? 0;
-    });
-    const maxSets = Math.max(...setsByDay, 1);
-    const barHeights = setsByDay.map(s => Math.round((s / maxSets) * 100));
-
-    const hasWorkoutByDay = Array(7).fill(false);
-    weekRecords.forEach(r => { hasWorkoutByDay[new Date(r.date).getDay()] = true; });
-
-    // Label do intervalo
-    const startDay = ws.getDate();
-    const endDay = we.getDate();
-    const sm = MONTHS_SHORT[ws.getMonth()];
-    const em = MONTHS_SHORT[we.getMonth()];
-    const rangeLabel = sm === em
-      ? `${startDay} – ${endDay} ${em}`
-      : `${startDay} ${sm} – ${endDay} ${em}`;
-
-    const hours = Math.floor(totalMinutes / 60);
-    const mins = totalMinutes % 60;
-
-    return { totalSessions, totalSets, hours, mins, setsByDay, barHeights, hasWorkoutByDay, rangeLabel };
   }, [history]);
 
   /* ── Dados do dia selecionado ── */
@@ -161,79 +90,9 @@ export default function HistoryView({ history, workoutPlans }: { history: Workou
   const { dayRecords, planMap } = dayData;
   const hasRecords = dayRecords.length > 0;
   const groupedByPlan = Object.values(planMap);
-  const todayDow = today.getDay();
 
   return (
     <div className="pt-4">
-
-      {/* ═══════ Card semanal ═══════ */}
-      <div className="card-elevated p-4 mb-4">
-        <div className="flex items-center justify-between mb-3">
-          <p className="text-[10px] text-purple-400 font-semibold tracking-[.8px] uppercase">
-            semana atual
-          </p>
-          <p className="text-[11px] text-[#4a4568]">{weekData.rangeLabel}</p>
-        </div>
-
-        {/* Totais */}
-        <div className="grid grid-cols-3 gap-2 mb-4">
-          <div className="rounded-[12px] p-3 border border-purple-500/[0.15] bg-white/[0.03]">
-            <span className="text-[28px] font-bold text-white leading-none">{weekData.totalSessions}</span>
-            <p className="text-[10px] text-[#7c6f9e] mt-1.5">treinos</p>
-          </div>
-          <div className="rounded-[12px] p-3 border border-purple-500/[0.15] bg-white/[0.03]">
-            <span className="text-[28px] font-bold text-white leading-none">{weekData.totalSets}</span>
-            <p className="text-[10px] text-[#7c6f9e] mt-1.5">séries</p>
-          </div>
-          <div className="rounded-[12px] p-3 border border-purple-500/[0.15] bg-white/[0.03]">
-            <div className="flex items-baseline">
-              <span className="text-[28px] font-bold text-white leading-none">{weekData.hours}</span>
-              <span className="text-[13px] text-[#4a4568] font-medium">h</span>
-              <span className="text-[28px] font-bold text-white leading-none ml-0.5">
-                {String(weekData.mins).padStart(2, '0')}
-              </span>
-            </div>
-            <p className="text-[10px] text-[#7c6f9e] mt-1.5">duração</p>
-          </div>
-        </div>
-
-        {/* Barras por dia da semana */}
-        <div className="flex items-end gap-1.5" style={{ height: 68 }}>
-          {weekData.barHeights.map((h, i) => {
-            const isFuture = i > todayDow;
-            const hasSets = weekData.setsByDay[i] > 0;
-            return (
-              <div key={i} className="flex-1 h-full flex flex-col justify-end">
-                <div
-                  className={`w-full rounded-t-[5px] transition-all ${
-                    isFuture ? 'bg-purple-500/15' :
-                    hasSets  ? 'bg-purple-500' : 'bg-[#1e1640]'
-                  }`}
-                  style={{ height: `${hasSets ? Math.max(h, 10) : 5}%`, minHeight: 3 }}
-                />
-              </div>
-            );
-          })}
-        </div>
-
-        {/* Dots + Labels */}
-        <div className="grid grid-cols-7 gap-1.5 mt-2">
-          {WEEKDAYS_SHORT.map((d, i) => {
-            const isFuture = i > todayDow;
-            return (
-              <div key={i} className="flex flex-col items-center gap-1">
-                {weekData.hasWorkoutByDay[i]
-                  ? <div className="w-1.5 h-1.5 rounded-full bg-green-400" />
-                  : <div className="w-1.5 h-1.5" />
-                }
-                <span className={`text-[9px] font-medium ${
-                  isFuture ? 'text-[#2d2040]' : 'text-[#7c6f9e]'
-                }`}>{d}</span>
-              </div>
-            );
-          })}
-        </div>
-      </div>
 
       {/* ═══════ Calendário mensal ═══════ */}
       <div className="px-1 mb-4">
@@ -469,6 +328,14 @@ export default function HistoryView({ history, workoutPlans }: { history: Workou
                 <div className="flex flex-wrap gap-1.5">
                   {records.map(record => {
                     const isSub = !!record.substitute;
+                    const prevRecord = history
+                      .filter(r =>
+                        r.exerciseName === record.exerciseName &&
+                        r.planId === record.planId &&
+                        new Date(r.date).getTime() < new Date(record.date).getTime()
+                      )
+                      .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())[0];
+                    const progression = prevRecord ? calcProgression(record, prevRecord) : null;
                     return (
                       <span
                         key={record.id}
@@ -487,6 +354,12 @@ export default function HistoryView({ history, workoutPlans }: { history: Workou
                         {isSub && <ArrowRightLeft size={9} style={{ stroke: '#a78bfa' }} />}
                         <span className="text-[11px] font-medium text-[#d4b8ff]">{record.exerciseName}</span>
                         <span className="text-[10px] text-[#7c6f9e]">{(record.plannedSets ?? record.completedSets?.length ?? 0)}s</span>
+                        {progression?.kind === 'up' && (
+                          <span className="text-[9px] font-bold text-green-400 ml-0.5">{progression.label}</span>
+                        )}
+                        {progression?.kind === 'down' && (
+                          <span className="text-[9px] font-bold text-red-400 ml-0.5">{progression.label}</span>
+                        )}
                       </span>
                     );
                   })}
