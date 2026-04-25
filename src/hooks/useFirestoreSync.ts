@@ -27,6 +27,7 @@ export default function useFirestoreSync(userId: string | null, isOnline: boolea
   const [syncError, setSyncError] = useState<string | null>(null);
   const [lastSyncedAt, setLastSyncedAt] = useState<string | null>(null);
   const [isInitialSync, setIsInitialSync] = useState(false);
+  const [permanentFailures, setPermanentFailures] = useState(0);
 
   const isProcessingQueueRef = useRef(false);
 
@@ -87,6 +88,7 @@ export default function useFirestoreSync(userId: string | null, isOnline: boolea
           const updatedItem = getSyncQueue().find((q) => q.id === item.id);
           if (updatedItem && updatedItem.retries >= 3) {
             removeFromSyncQueue(item.id);
+            setPermanentFailures(prev => prev + 1);
           }
         }
       }
@@ -159,11 +161,11 @@ export default function useFirestoreSync(userId: string | null, isOnline: boolea
 
   const syncDeletePlan = useCallback(
     async (planId: string) => {
-      if (!userId) return false;
+      if (!userId) return true; // sem conta, permite remover localmente
 
       if (!isOnline) {
         addToSyncQueue(SYNC_OPERATIONS.DELETE_PLAN, { id: planId });
-        return false;
+        return true; // offline: remove otimisticamente, fila sincroniza depois
       }
 
       try {
@@ -172,9 +174,8 @@ export default function useFirestoreSync(userId: string | null, isOnline: boolea
         return true;
       } catch (error: unknown) {
         console.error('Erro ao deletar plano:', error);
-        addToSyncQueue(SYNC_OPERATIONS.DELETE_PLAN, { id: planId });
         setSyncError(error instanceof Error ? error.message : String(error));
-        return false;
+        return false; // online: falhou, não remove do estado
       }
     },
     [userId, isOnline]
@@ -205,11 +206,11 @@ export default function useFirestoreSync(userId: string | null, isOnline: boolea
 
   const syncDeleteHistory = useCallback(
     async (recordId: string) => {
-      if (!userId) return false;
+      if (!userId) return true; // sem conta, permite remover localmente
 
       if (!isOnline) {
         addToSyncQueue(SYNC_OPERATIONS.DELETE_HISTORY, { id: recordId });
-        return false;
+        return true; // offline: remove otimisticamente, fila sincroniza depois
       }
 
       try {
@@ -218,9 +219,8 @@ export default function useFirestoreSync(userId: string | null, isOnline: boolea
         return true;
       } catch (error: unknown) {
         console.error('Erro ao deletar histórico:', error);
-        addToSyncQueue(SYNC_OPERATIONS.DELETE_HISTORY, { id: recordId });
         setSyncError(error instanceof Error ? error.message : String(error));
-        return false;
+        return false; // online: falhou, não remove do estado
       }
     },
     [userId, isOnline]
@@ -249,6 +249,7 @@ export default function useFirestoreSync(userId: string | null, isOnline: boolea
     syncError,
     lastSyncedAt,
     isInitialSync,
+    permanentFailures,
     checkIfFirstSync,
     syncLocalToFirestore,
     syncPlan,
