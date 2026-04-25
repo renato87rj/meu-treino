@@ -5,12 +5,15 @@ export default function useWorkoutDerivedState(
   view: string,
   selectedPlan: WorkoutPlan | null,
   history: WorkoutRecord[],
-  getTodayRecords: (planId: string) => WorkoutRecord[]
+  getTodayRecords: (planId: string) => WorkoutRecord[],
+  getDraftRecords: (planId: string) => WorkoutRecord[],
+  isDraftActive: boolean,
 ) {
   const todayRecords = useMemo(() => {
     if (view !== 'workout' || !selectedPlan) return [];
+    if (isDraftActive) return getDraftRecords(selectedPlan.id);
     return getTodayRecords(selectedPlan.id);
-  }, [view, selectedPlan, getTodayRecords]);
+  }, [view, selectedPlan, getTodayRecords, getDraftRecords, isDraftActive]);
 
   const completedTodayIds = useMemo(
     () => new Set<string>(todayRecords.map((r) => String(r.exerciseId))),

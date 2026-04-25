@@ -1,18 +1,14 @@
 import { useCallback } from 'react';
-import type { WorkoutPlan, Exercise, WorkoutRecord, SetProgressMap, SubstituteExercisesMap } from '../types/workout';
+import type { WorkoutPlan, Exercise, WorkoutRecord, WorkoutDraft, SetProgressMap, SubstituteExercisesMap } from '../types/workout';
 
 export default function useWorkoutSession(
   setProgress: SetProgressMap,
   setSetProgress: React.Dispatch<React.SetStateAction<SetProgressMap>>,
   substituteExercises: SubstituteExercisesMap,
   setSubstituteExercises: React.Dispatch<React.SetStateAction<SubstituteExercisesMap>>,
-  saveRecord: (record: WorkoutRecord) => WorkoutRecord,
-  syncRecord: (record: WorkoutRecord) => void,
   persistWeightToPlan: (planId: string, exerciseId: string, weight: number | string | null) => void,
-  history: WorkoutRecord[],
-  setHistory: React.Dispatch<React.SetStateAction<WorkoutRecord[]>>,
-  userId: string | null,
-  syncDeleteHistory: (recordId: string) => void
+  draft: WorkoutDraft | null,
+  setDraft: React.Dispatch<React.SetStateAction<WorkoutDraft | null>>,
 ) {
 
   const updateExerciseWeight = useCallback((exerciseId: string, weight: number | string) => {
@@ -60,7 +56,6 @@ export default function useWorkoutSession(
 
     const completedSets = Array.from({ length: exercise.sets }, (_, i) => {
       if (current.sets[i]) {
-        // Ensure existing set has all required properties
         const existingSet = current.sets[i] as any;
         return {
           reps: existingSet.reps,
@@ -100,7 +95,16 @@ export default function useWorkoutSession(
       updatedAt: new Date().toISOString()
     };
 
-    const savedRecord = saveRecord(record);
+    setDraft(prev => {
+      if (!prev) return prev;
+      const existingIdx = prev.records.findIndex(
+        r => r.exerciseName === exercise.name && r.planId === plan.id
+      );
+      const updated = existingIdx >= 0
+        ? prev.records.map((r, i) => i === existingIdx ? { ...record, id: r.id, createdAt: r.createdAt } : r)
+        : [...prev.records, record];
+      return { ...prev, records: updated };
+    });
 
     setSetProgress(prev => {
       const next = { ...prev };
@@ -112,35 +116,30 @@ export default function useWorkoutSession(
       persistWeightToPlan(plan.id, exercise.id, current.weight);
     }
 
-    syncRecord(savedRecord);
-
     return true;
-  }, [setProgress, setSetProgress, saveRecord, syncRecord, persistWeightToPlan]);
+  }, [setProgress, setSetProgress, setDraft, persistWeightToPlan]);
 
   const undoExercise = useCallback((plan: WorkoutPlan, exercise: Exercise) => {
-    const today = new Date().toLocaleDateString('pt-BR');
-    const existingRecord = history.find(record => {
-      const recordDate = new Date(record.date).toLocaleDateString('pt-BR');
-      if (recordDate !== today || record.planId !== plan.id) return false;
-      return record.exerciseId === exercise.id || record.exerciseName === exercise.name;
+    let existingRecord: WorkoutRecord | undefined;
+
+    setDraft(prev => {
+      if (!prev) return prev;
+      const found = prev.records.find(
+        r => r.planId === plan.id && (r.exerciseId === exercise.id || r.exerciseName === exercise.name)
+      );
+      existingRecord = found;
+      if (!found) return prev;
+      return { ...prev, records: prev.records.filter(r => r.id !== found.id) };
     });
-
-    if (!existingRecord) return;
-
-    setHistory(prev => prev.filter(r => r.id !== existingRecord.id));
 
     setSetProgress(prev => ({
       ...prev,
       [exercise.id]: {
-        weight: String(existingRecord.weight ?? exercise.weight ?? 0),
+        weight: String(existingRecord?.weight ?? exercise.weight ?? 0),
         sets: []
       }
     }));
-
-    if (userId) {
-      syncDeleteHistory(existingRecord.id);
-    }
-  }, [history, setHistory, userId, syncDeleteHistory, setSetProgress]);
+  }, [setDraft, setSetProgress]);
 
   const addSubstituteExercise = useCallback((planId: string, exercise: Exercise) => {
     setSubstituteExercises(prev => ({
