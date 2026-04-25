@@ -9,8 +9,19 @@ export interface Exercise {
   _originalName?: string;
 }
 
+export interface WorkoutProgram {
+  id: string;
+  name: string;
+  plans: WorkoutPlan[];
+  active: boolean;
+  archived: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
 export interface WorkoutPlan {
   id: string;
+  programId: string;
   name: string;
   exercises: Exercise[];
   createdAt: string;
@@ -26,6 +37,8 @@ export interface CompletedSet {
 
 export interface WorkoutRecord {
   id: string;
+  programId?: string;
+  programName?: string;
   planId: string;
   planName: string;
   exerciseId: string;
@@ -51,3 +64,23 @@ export interface SetProgressEntry {
 
 export type SetProgressMap = Record<string, SetProgressEntry>;
 export type SubstituteExercisesMap = Record<string, Exercise[]>;
+
+export interface WorkoutSession {
+  id: string;
+  programId: string;
+  programName: string;
+  planId: string;
+  planName: string;
+  startedAt: string;
+  finishedAt: string;
+  durationMinutes: number;
+}
+
+export interface WorkoutDraft {
+  programId: string;
+  programName: string;
+  planId: string;
+  planName: string;
+  startedAt: string;
+  records: WorkoutRecord[];
+}
