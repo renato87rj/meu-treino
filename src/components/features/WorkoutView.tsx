@@ -21,6 +21,7 @@ interface Props {
   onAddSubstitute: (exercise: Exercise) => void;
   onRemoveSubstitute: (exerciseId: string) => void;
   onStartRestTimer: (seconds?: number | null) => void;
+  onStopRestTimer: () => void;
   onFinishWorkout: () => void;
   workoutFinished: boolean;
   setWorkoutFinished: (finished: boolean) => void;
@@ -44,6 +45,7 @@ export default function WorkoutView({
   onAddSubstitute,
   onRemoveSubstitute,
   onStartRestTimer,
+  onStopRestTimer,
   onFinishWorkout,
   workoutFinished,
   setWorkoutFinished,
@@ -132,7 +134,7 @@ export default function WorkoutView({
     const setsData = Array.from({ length: exercise.sets }, (_, i) => repsInput[exercise.id]?.[i] || null);
     onCompleteExercise(selectedPlan, exercise, setsData);
     setExpanded(prev => ({ ...prev, [exercise.id]: false }));
-    if (onStartRestTimer) onStartRestTimer();
+    if (onStopRestTimer) onStopRestTimer();
     setRepsInput(prev => { const next = { ...prev }; delete next[exercise.id]; return next; });
   };
 

@@ -1,6 +1,9 @@
 'use client';
-import React, { useMemo } from 'react';
+import React, { useMemo, useState } from 'react';
+import { ChevronLeft, ChevronRight } from 'lucide-react';
 import type { WorkoutPlan, WorkoutRecord } from '../../types/workout';
+import type { BodyMeasurement, MeasurementKey } from '../../types/profile';
+import { MEASUREMENT_LABELS, MEASUREMENT_UNITS } from '../../types/profile';
 import exerciseDatabase from '../../data/exerciseDatabase';
 
 const WEEKDAYS_SHORT = ['D', 'S', 'T', 'Q', 'Q', 'S', 'S'];
@@ -25,19 +28,120 @@ function startOfWeekOffset(weeksAgo: number): Date {
   return d;
 }
 
+const BODY_METRIC_KEYS: MeasurementKey[] = ['weightKg', 'chestCm', 'waistCm', 'hipCm', 'armCm', 'thighCm'];
+
 interface Props {
   history: WorkoutRecord[];
   workoutPlans: WorkoutPlan[];
+  measurements?: BodyMeasurement[];
 }
 
-export default function EvolutionView({ history, workoutPlans }: Props) {
-  const today = new Date();
+function BodyLineChart({ data, unit }: { data: { label: string; value: number }[]; unit: string }) {
+  if (data.length < 2) {
+    return (
+      <p className="text-[13px] text-[#4a4568] text-center py-4">
+        Registre pelo menos 2 medições para ver o gráfico
+      </p>
+    );
+  }
+
+  const values = data.map(d => d.value);
+  const minV = Math.min(...values);
+  const maxV = Math.max(...values);
+  const range = maxV - minV || 1;
+
+  const W = 280;
+  const H = 80;
+  const PAD_X = 8;
+  const PAD_Y = 10;
+  const usableW = W - PAD_X * 2;
+  const usableH = H - PAD_Y * 2;
+
+  const points = data.map((d, i) => ({
+    x: PAD_X + (i / (data.length - 1)) * usableW,
+    y: PAD_Y + (1 - (d.value - minV) / range) * usableH,
+    value: d.value,
+    label: d.label,
+  }));
+
+  const polyline = points.map(p => `${p.x},${p.y}`).join(' ');
+
+  // gradient fill path
+  const fillPath = [
+    `M ${points[0].x} ${H}`,
+    `L ${points[0].x} ${points[0].y}`,
+    ...points.slice(1).map(p => `L ${p.x} ${p.y}`),
+    `L ${points[points.length - 1].x} ${H}`,
+    'Z',
+  ].join(' ');
+
+  return (
+    <div className="w-full overflow-x-auto">
+      <svg viewBox={`0 0 ${W} ${H}`} className="w-full" style={{ height: 80 }}>
+        <defs>
+          <linearGradient id="bodyGrad" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stopColor="#7c3aed" stopOpacity="0.25" />
+            <stop offset="100%" stopColor="#7c3aed" stopOpacity="0" />
+          </linearGradient>
+        </defs>
+        <path d={fillPath} fill="url(#bodyGrad)" />
+        <polyline
+          points={polyline}
+          fill="none"
+          stroke="#7c3aed"
+          strokeWidth="1.8"
+          strokeLinejoin="round"
+          strokeLinecap="round"
+        />
+        {points.map((p, i) => (
+          <g key={i}>
+            <circle cx={p.x} cy={p.y} r={i === points.length - 1 ? 3.5 : 2.5}
+              fill={i === points.length - 1 ? '#a78bfa' : '#7c3aed'}
+              stroke={i === points.length - 1 ? '#0a0714' : 'none'}
+              strokeWidth="1.5"
+            />
+            {i === points.length - 1 && (
+              <text x={p.x} y={p.y - 6} textAnchor="middle"
+                fontSize="7" fill="#a78bfa" fontWeight="600">
+                {p.value}{unit}
+              </text>
+            )}
+          </g>
+        ))}
+      </svg>
+      {/* X axis labels — first and last */}
+      <div className="flex justify-between mt-1">
+        <span className="text-[9px] text-[#3a3060]">{points[0].label}</span>
+        <span className="text-[9px] text-[#3a3060]">{points[points.length - 1].label}</span>
+      </div>
+    </div>
+  );
+}
+
+export default function EvolutionView({ history, workoutPlans, measurements = [] }: Props) {
+  const today = useMemo(() => new Date(), []);
+  const [weekOffset, setWeekOffset] = useState(0);
+  
+  const selectedWeekStart = useMemo(() => {
+    const d = new Date(today);
+    d.setDate(d.getDate() - d.getDay() - weekOffset * 7);
+    d.setHours(0, 0, 0, 0);
+    return d;
+  }, [today, weekOffset]);
+  
+  const selectedWeekEnd = useMemo(() => {
+    const d = new Date(selectedWeekStart);
+    d.setDate(d.getDate() + 6);
+    d.setHours(23, 59, 59, 999);
+    return d;
+  }, [selectedWeekStart]);
+
   const todayDow = today.getDay();
 
   /* ── Card semanal ── */
   const weekData = useMemo(() => {
-    const ws = startOfWeek(today);
-    const we = endOfWeek(today);
+    const ws = selectedWeekStart;
+    const we = selectedWeekEnd;
     const weekRecords = history.filter(r => {
       const d = new Date(r.date);
       return d >= ws && d <= we;
@@ -84,8 +188,12 @@ export default function EvolutionView({ history, workoutPlans }: Props) {
       ? `${ws.getDate()} – ${we.getDate()} ${em}`
       : `${ws.getDate()} ${sm} – ${we.getDate()} ${em}`;
 
-    // Volume planejado (total sets planejados nos planos × exercícios) vs realizado
-    const plannedSets = weekRecords.reduce((acc, r) => acc + (r.plannedSets ?? 0), 0);
+    // Volume planejado (total sets dos planos originais, não apenas dos registros completados)
+    const uniquePlanIds = [...new Set(weekRecords.map(r => r.planId))];
+    const plannedSets = uniquePlanIds.reduce((acc, planId) => {
+      const originalPlan = workoutPlans.find(p => p.id === planId);
+      return acc + (originalPlan ? originalPlan.exercises.reduce((sum, ex) => sum + ex.sets, 0) : 0);
+    }, 0);
     const ratio = plannedSets > 0 ? totalSets / plannedSets : null;
     const volumeStatus: 'green' | 'yellow' | 'red' | null =
       ratio === null ? null :
@@ -97,8 +205,7 @@ export default function EvolutionView({ history, workoutPlans }: Props) {
       setsByDay, barHeights, hasWorkoutByDay, rangeLabel,
       plannedSets, ratio, volumeStatus,
     };
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [history]);
+  }, [history, workoutPlans, selectedWeekStart, selectedWeekEnd]);
 
   /* ── Volume por semana (últimas 8 semanas) ── */
   const weeklyVolume = useMemo(() => {
@@ -121,38 +228,104 @@ export default function EvolutionView({ history, workoutPlans }: Props) {
 
   /* ── Volume por grupo muscular ── */
   const muscleData = useMemo(() => {
-    const groupMap: Record<string, number> = {};
-    history.forEach(r => {
+    // Calcular séries feitas por grupo muscular na semana selecionada
+    const completedMap: Record<string, number> = {};
+    const weekRecords = history.filter(r => {
+      const d = new Date(r.date);
+      return d >= selectedWeekStart && d <= selectedWeekEnd;
+    });
+    
+    weekRecords.forEach(r => {
       const db = exerciseDatabase.find(e =>
         e.name.toLowerCase() === r.exerciseName.toLowerCase()
       );
       const group = db?.group ?? 'Outro';
-      groupMap[group] = (groupMap[group] ?? 0) + (r.completedSets?.length ?? 0);
+      completedMap[group] = (completedMap[group] ?? 0) + (r.completedSets?.length ?? 0);
     });
-    const total = Object.values(groupMap).reduce((a, b) => a + b, 0) || 1;
-    return Object.entries(groupMap)
-      .sort((a, b) => b[1] - a[1])
-      .slice(0, 10)
-      .map(([group, sets]) => ({ group, sets, pct: Math.round((sets / total) * 100) }));
-  }, [history]);
 
-  const volumeStatusColors = {
-    green:  { bar: 'bg-green-500',  text: 'text-green-400',  label: 'Ótimo volume' },
-    yellow: { bar: 'bg-yellow-400', text: 'text-yellow-400', label: 'Volume moderado' },
-    red:    { bar: 'bg-red-500',    text: 'text-red-400',    label: 'Volume baixo' },
-  };
+    // Calcular séries planejadas por grupo muscular (dos planos originais)
+    const plannedMap: Record<string, number> = {};
+    const uniquePlanIds = [...new Set(weekRecords.map(r => r.planId))];
+    uniquePlanIds.forEach(planId => {
+      const originalPlan = workoutPlans.find(p => p.id === planId);
+      if (originalPlan) {
+        originalPlan.exercises.forEach(ex => {
+          const db = exerciseDatabase.find(e =>
+            e.name.toLowerCase() === ex.name.toLowerCase()
+          );
+          const group = db?.group ?? 'Outro';
+          plannedMap[group] = (plannedMap[group] ?? 0) + ex.sets;
+        });
+      }
+    });
+
+    // Combinar dados: mostrar feito vs planejado
+    const allGroups = [...new Set([...Object.keys(completedMap), ...Object.keys(plannedMap)])];
+    return allGroups
+      .map(group => {
+        const done = completedMap[group] ?? 0;
+        const planned = plannedMap[group] ?? 0;
+        return { group, done, planned };
+      })
+      .sort((a, b) => (b.done + b.planned) - (a.done + a.planned))
+      .slice(0, 10);
+  }, [history, workoutPlans, selectedWeekStart, selectedWeekEnd]);
+
+  const [selectedMetric, setSelectedMetric] = useState<MeasurementKey>('weightKg');
+
+  const bodyChartData = useMemo(() => {
+    const last12 = measurements.slice(-12);
+    return last12
+      .filter(m => m[selectedMetric] != null)
+      .map(m => ({
+        label: new Date(m.measuredAt).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' }),
+        value: m[selectedMetric] as number,
+      }));
+  }, [measurements, selectedMetric]);
+
+  const bodyDelta = useMemo(() => {
+    const filtered = measurements.filter(m => m[selectedMetric] != null);
+    if (filtered.length < 2) return null;
+    const first = filtered[0][selectedMetric] as number;
+    const last = filtered[filtered.length - 1][selectedMetric] as number;
+    return +(last - first).toFixed(1);
+  }, [measurements, selectedMetric]);
+
+  const canGoNext = weekOffset > 0;
+  const isCurrentWeek = weekOffset === 0;
 
   return (
     <div className="pt-4 space-y-4">
 
-      {/* ═══════ Card semanal ═══════ */}
+      {/* ═══════ Card semanal navegável ═══════ */}
       <div className="card-elevated p-4">
-        <div className="flex items-center justify-between mb-3">
-          <p className="text-[10px] text-purple-400 font-semibold tracking-[.8px] uppercase">semana atual</p>
+        {/* Header com navegação */}
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setWeekOffset(o => o + 1)}
+              className="w-7 h-7 rounded-full flex items-center justify-center
+                         bg-purple-500/15 border border-purple-500/20 active:scale-95 transition-transform"
+            >
+              <ChevronLeft size={14} className="text-purple-400" />
+            </button>
+            <p className="text-[10px] text-purple-400 font-semibold tracking-[.8px] uppercase">
+              {isCurrentWeek ? 'semana atual' : 'semana anterior'}
+            </p>
+            <button
+              onClick={() => setWeekOffset(o => Math.max(0, o - 1))}
+              disabled={!canGoNext}
+              className="w-7 h-7 rounded-full flex items-center justify-center
+                         bg-purple-500/15 border border-purple-500/20 active:scale-95 transition-transform
+                         disabled:opacity-30 disabled:cursor-not-allowed"
+            >
+              <ChevronRight size={14} className="text-purple-400" />
+            </button>
+          </div>
           <p className="text-[11px] text-[#4a4568]">{weekData.rangeLabel}</p>
         </div>
 
-        {/* Totais: treinos, séries, duração, tempo médio */}
+        {/* Totais: treinos e séries (com comparação planejado) */}
         <div className="grid grid-cols-2 gap-2 mb-3">
           <div className="rounded-[12px] p-3 border border-purple-500/[0.15] bg-white/[0.03]">
             <div className="flex items-end gap-1">
@@ -161,8 +334,11 @@ export default function EvolutionView({ history, workoutPlans }: Props) {
             <p className="text-[10px] text-[#7c6f9e] mt-1.5">treinos</p>
           </div>
           <div className="rounded-[12px] p-3 border border-purple-500/[0.15] bg-white/[0.03]">
-            <span className="text-[28px] font-bold text-white leading-none">{weekData.totalSets}</span>
-            <p className="text-[10px] text-[#7c6f9e] mt-1.5">séries realizadas</p>
+            <div className="flex items-baseline gap-1">
+              <span className="text-[28px] font-bold text-white leading-none">{weekData.totalSets}</span>
+              <span className="text-[14px] text-[#4a4568]">/ {weekData.plannedSets}</span>
+            </div>
+            <p className="text-[10px] text-[#7c6f9e] mt-1.5">séries feitas</p>
           </div>
           <div className="rounded-[12px] p-3 border border-purple-500/[0.15] bg-white/[0.03]">
             <div className="flex items-baseline">
@@ -191,64 +367,39 @@ export default function EvolutionView({ history, workoutPlans }: Props) {
           </div>
         </div>
 
-        {/* Volume planejado vs realizado */}
-        {weekData.volumeStatus && (
-          <div className={`flex items-center justify-between rounded-[10px] px-3 py-2 mb-3 border ${
-            weekData.volumeStatus === 'green'  ? 'border-green-500/20 bg-green-500/[0.06]' :
-            weekData.volumeStatus === 'yellow' ? 'border-yellow-400/20 bg-yellow-400/[0.06]' :
-                                                  'border-red-500/20 bg-red-500/[0.06]'
-          }`}>
-            <div>
-              <p className={`text-[12px] font-semibold ${volumeStatusColors[weekData.volumeStatus].text}`}>
-                {volumeStatusColors[weekData.volumeStatus].label}
-              </p>
-              <p className="text-[10px] text-[#7c6f9e] mt-0.5">
-                {weekData.totalSets}/{weekData.plannedSets} séries planejadas
-              </p>
+        {/* Indicador visual de progresso */}
+        {weekData.plannedSets > 0 && (
+          <div className="mt-3">
+            <div className="flex items-center justify-between mb-1.5">
+              <span className="text-[11px] text-[#7c6f9e]">Progresso semanal</span>
+              <span className="text-[11px] font-medium text-white">
+                {Math.round((weekData.totalSets / weekData.plannedSets) * 100)}%
+              </span>
             </div>
-            <div className={`text-[18px] font-bold ${volumeStatusColors[weekData.volumeStatus].text}`}>
-              {weekData.ratio !== null ? `${Math.round(weekData.ratio * 100)}%` : '—'}
+            <div className="h-2 rounded-full bg-[#1e1640] overflow-hidden">
+              <div
+                className="h-full rounded-full transition-all duration-500"
+                style={{ 
+                  width: `${Math.min(100, (weekData.totalSets / weekData.plannedSets) * 100)}%`,
+                  background: weekData.totalSets >= weekData.plannedSets * 0.9 
+                    ? '#4ade80' 
+                    : weekData.totalSets >= weekData.plannedSets * 0.6 
+                      ? '#fbbf24' 
+                      : '#f87171'
+                }}
+              />
             </div>
+            <p className="text-[10px] text-[#4a4568] mt-1.5">
+              Meta: {weekData.plannedSets} séries · Feitas: {weekData.totalSets} séries
+            </p>
           </div>
         )}
-
-        {/* Barras por dia */}
-        <div className="flex items-end gap-1.5" style={{ height: 56 }}>
-          {weekData.barHeights.map((h, i) => {
-            const isFuture = i > todayDow;
-            const hasSets = weekData.setsByDay[i] > 0;
-            return (
-              <div key={i} className="flex-1 h-full flex flex-col justify-end">
-                <div
-                  className={`w-full rounded-t-[5px] transition-all ${
-                    isFuture ? 'bg-purple-500/15' :
-                    hasSets  ? 'bg-purple-500' : 'bg-[#1e1640]'
-                  }`}
-                  style={{ height: `${hasSets ? Math.max(h, 10) : 5}%`, minHeight: 3 }}
-                />
-              </div>
-            );
-          })}
-        </div>
-        <div className="grid grid-cols-7 gap-1.5 mt-2">
-          {WEEKDAYS_SHORT.map((d, i) => (
-            <div key={i} className="flex flex-col items-center gap-1">
-              {weekData.hasWorkoutByDay[i]
-                ? <div className="w-1.5 h-1.5 rounded-full bg-green-400" />
-                : <div className="w-1.5 h-1.5" />
-              }
-              <span className={`text-[9px] font-medium ${
-                i > todayDow ? 'text-[#2d2040]' : 'text-[#7c6f9e]'
-              }`}>{d}</span>
-            </div>
-          ))}
-        </div>
       </div>
 
-      {/* ═══════ Volume por semana (últimas 8 semanas) ═══════ */}
+      {/* ═══════ Volume por semana (histórico) ═══════ */}
       <div className="card-elevated p-4">
         <p className="text-[10px] text-purple-400 font-semibold tracking-[.8px] uppercase mb-4">
-          volume por semana
+          histórico de volume
         </p>
         {weeklyVolume.every(w => w.sets === 0) ? (
           <p className="text-[13px] text-[#4a4568] text-center py-4">Nenhum dado ainda</p>
@@ -295,21 +446,104 @@ export default function EvolutionView({ history, workoutPlans }: Props) {
           <p className="text-[13px] text-[#4a4568] text-center py-4">Nenhum dado ainda</p>
         ) : (
           <div className="space-y-3">
-            {muscleData.map(({ group, sets, pct }) => (
+            {muscleData.map(({ group, done, planned }) => (
               <div key={group}>
                 <div className="flex items-center justify-between mb-1">
                   <span className="text-[12px] font-medium text-white">{group}</span>
-                  <span className="text-[11px] text-[#7c6f9e]">{sets} séries · {pct}%</span>
+                  <div className="flex items-center gap-2">
+                    <span className="text-[11px] text-[#7c6f9e]">Feito:</span>
+                    <span className="text-[11px] font-medium text-white">{done}</span>
+                    <span className="text-[11px] text-[#4a4568]">|</span>
+                    <span className="text-[11px] text-[#7c6f9e]">Meta:</span>
+                    <span className="text-[11px] font-medium text-purple-300">{planned}</span>
+                  </div>
                 </div>
                 <div className="h-[6px] rounded-full bg-[#1e1640] overflow-hidden">
                   <div
-                    className="h-full bg-purple-500 rounded-full transition-all duration-500"
-                    style={{ width: `${pct}%` }}
+                    className="h-full rounded-full transition-all duration-500"
+                    style={{ 
+                      width: `${planned > 0 ? Math.min(100, (done / planned) * 100) : 0}%`,
+                      background: done >= planned * 0.9 ? '#4ade80' : done >= planned * 0.6 ? '#fbbf24' : '#f87171'
+                    }}
                   />
                 </div>
               </div>
             ))}
           </div>
+        )}
+      </div>
+
+      {/* ═══════ Evolução Corporal ═══════ */}
+      <div className="card-elevated p-4 mb-4">
+        <p className="text-[10px] text-purple-400 font-semibold tracking-[.8px] uppercase mb-3">
+          evolução corporal
+        </p>
+
+        {measurements.length === 0 ? (
+          <p className="text-[13px] text-[#4a4568] text-center py-4">
+            Nenhuma medição registrada ainda.
+            <br />
+            <span className="text-[11px] text-[#3a3060]">Adicione em Meu Perfil → Medidas</span>
+          </p>
+        ) : (
+          <>
+            {/* Seletor de métrica */}
+            <div className="flex gap-1.5 overflow-x-auto pb-2 mb-4">
+              {BODY_METRIC_KEYS.map(k => {
+                const hasData = measurements.some(m => m[k] != null);
+                return (
+                  <button
+                    key={k}
+                    onClick={() => setSelectedMetric(k)}
+                    disabled={!hasData}
+                    className={`flex-shrink-0 px-3 py-1.5 rounded-full text-[11px] font-semibold transition-all ${
+                      selectedMetric === k
+                        ? 'bg-purple-600 text-white'
+                        : hasData
+                        ? 'bg-white/[0.05] text-[#7c6f9e] border border-white/[0.08] hover:border-purple-500/30'
+                        : 'bg-white/[0.02] text-[#2d2040] border border-white/[0.04] cursor-not-allowed'
+                    }`}
+                  >
+                    {MEASUREMENT_LABELS[k].split(' ')[0]}
+                  </button>
+                );
+              })}
+            </div>
+
+            {/* Resumo: atual + delta */}
+            {bodyChartData.length > 0 && (
+              <div className="flex items-end justify-between mb-3">
+                <div>
+                  <span className="text-[28px] font-bold text-white leading-none">
+                    {bodyChartData[bodyChartData.length - 1].value}
+                  </span>
+                  <span className="text-[13px] text-[#4a4568] ml-1">{MEASUREMENT_UNITS[selectedMetric]}</span>
+                  <p className="text-[10px] text-[#7c6f9e] mt-1">{MEASUREMENT_LABELS[selectedMetric]}</p>
+                </div>
+                {bodyDelta !== null && (
+                  <div className={`text-right`}>
+                    <span className={`text-[16px] font-bold ${
+                      bodyDelta === 0 ? 'text-[#7c6f9e]' :
+                      selectedMetric === 'waistCm'
+                        ? bodyDelta < 0 ? 'text-green-400' : 'text-orange-400'
+                        : bodyDelta > 0 ? 'text-green-400' : 'text-orange-400'
+                    }`}>
+                      {bodyDelta > 0 ? '+' : ''}{bodyDelta} {MEASUREMENT_UNITS[selectedMetric]}
+                    </span>
+                    <p className="text-[10px] text-[#4a4568] mt-0.5">vs. início</p>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Gráfico */}
+            <BodyLineChart data={bodyChartData} unit={MEASUREMENT_UNITS[selectedMetric]} />
+
+            {/* Total de medições */}
+            <p className="text-[10px] text-[#3a3060] text-right mt-2">
+              {measurements.length} medição{measurements.length !== 1 ? 'ões' : ''} registrada{measurements.length !== 1 ? 's' : ''}
+            </p>
+          </>
         )}
       </div>
 

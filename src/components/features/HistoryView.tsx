@@ -192,7 +192,11 @@ export default function HistoryView({ history, workoutPlans }: { history: Workou
           </div>
         ) : (
            groupedByPlan.map(({ planId, planName, records }) => {
-            const totalPlanned = records.reduce((acc, r) => acc + (r.plannedSets ?? 0), 0);
+            // Buscar o plano original para calcular o total planejado corretamente
+            const originalPlan = workoutPlans.find(p => p.id === planId);
+            const totalPlanned = originalPlan
+              ? originalPlan.exercises.reduce((acc, ex) => acc + ex.sets, 0)
+              : records.reduce((acc, r) => acc + (r.plannedSets ?? 0), 0);
             const totalDone = records.reduce((acc, r) => acc + (r.completedSets?.length ?? 0), 0);
             const volumePct = totalPlanned > 0 ? Math.round((totalDone / totalPlanned) * 100) : 0;
 

@@ -127,6 +127,15 @@ export default function useRestTimer(defaultRestTime = 90) {
     setTimerFinished(false);
   }, [defaultTime]);
 
+  // Parar (pausar) o timer
+  const stopTimer = useCallback(() => {
+    if (!timerRunning) return;
+    const remaining = endTimeRef.current ? Math.max(0, Math.ceil((endTimeRef.current - Date.now()) / 1000)) : timerSeconds;
+    pausedLeftRef.current = remaining;
+    endTimeRef.current = null;
+    setTimerRunning(false);
+  }, [timerRunning, timerSeconds]);
+
   // Toggle play/pause
   const toggleTimer = useCallback(() => {
     setTimerRunning(prev => {
@@ -203,6 +212,7 @@ export default function useRestTimer(defaultRestTime = 90) {
     timerFinished,
     defaultTime,
     startRestTimer,
+    stopTimer,
     toggleTimer,
     resetTimer,
     closeTimer,

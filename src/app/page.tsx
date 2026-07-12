@@ -18,8 +18,10 @@ import useWorkoutData from '../hooks/useWorkoutData';
 import useRestTimer from '../hooks/useRestTimer';
 import useFinishedPlans from '../hooks/useFinishedPlans';
 import useWorkoutDerivedState from '../hooks/useWorkoutDerivedState';
+import useProfile from '../hooks/useProfile';
 import { useAuth } from '../contexts/AuthContext';
 import { useToast } from '../contexts/ToastContext';
+import ProfileSheet from '../components/features/ProfileSheet';
 
 export default function WorkoutTracker() {
   const { user, loading } = useAuth();
@@ -27,6 +29,11 @@ export default function WorkoutTracker() {
   const router = useRouter();
   const [view, setView] = useState('plans');
   const [selectedPlan, setSelectedPlan] = useState<WorkoutPlan | null>(null);
+  const [profileOpen, setProfileOpen] = useState(false);
+
+  const { profile, measurements, uploadAvatar, addMeasurement, changePassword } = useProfile(
+    user?.uid ?? null
+  );
 
   const { isFinished, setWorkoutFinished: setFinished } = useFinishedPlans();
 
@@ -86,6 +93,7 @@ export default function WorkoutTracker() {
     timerFinished,
     defaultTime,
     startRestTimer,
+    stopTimer,
     toggleTimer,
     resetTimer,
     closeTimer,
@@ -195,6 +203,19 @@ export default function WorkoutTracker() {
         </div>
       )}
       
+      {/* Profile Bottom Sheet */}
+      <ProfileSheet
+        open={profileOpen}
+        onClose={() => setProfileOpen(false)}
+        profile={profile}
+        measurements={measurements}
+        onUploadAvatar={uploadAvatar}
+        onSaveMeasurements={addMeasurement}
+        onChangePassword={changePassword}
+        userEmail={user?.email ?? null}
+        userInitial={user?.email?.charAt(0).toUpperCase() ?? '?'}
+      />
+
       {/* Header */}
       <Header
         view={view}
@@ -203,6 +224,8 @@ export default function WorkoutTracker() {
         totalCount={selectedPlan?.exercises.length || 0}
         isSyncing={isSyncing}
         isOnline={isOnline}
+        profile={profile}
+        onOpenProfile={() => setProfileOpen(true)}
       />
 
       {/* Timer de Descanso Flutuante */}
@@ -273,6 +296,7 @@ export default function WorkoutTracker() {
             onAddSubstitute={(ex: import('../types/workout').Exercise) => addSubstituteExercise(selectedPlan!.id, ex)}
             onRemoveSubstitute={(exId: string) => removeSubstituteExercise(selectedPlan!.id, exId)}
             onStartRestTimer={startRestTimer}
+            onStopRestTimer={stopTimer}
             onFinishWorkout={handleFinishWorkout}
             workoutFinished={workoutFinished}
             setWorkoutFinished={setWorkoutFinished}
@@ -292,6 +316,7 @@ export default function WorkoutTracker() {
           <EvolutionView
             history={history}
             workoutPlans={workoutPlans}
+            measurements={measurements}
           />
         )}
       </main>
